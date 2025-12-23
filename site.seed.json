@@ -7,31 +7,29 @@
   "addressShort": "San Martín 780, Quilmes",
   "addressFull": "San Martín 780, B1878 Quilmes, Provincia de Buenos Aires",
   "mapsQuery": "Voltri Cafe de especialidad San Martín 780 Quilmes",
-  "whatsappNumber": "5491125052219",
+  "whatsappE164": "5491125052219",
   "phoneDisplay": "11 2505-2219",
   "instagramUrl": "https://www.instagram.com/voltricafe/?hl=es-la",
-  "isPetFriendly": true,
-  "isLgbtqFriendly": true,
   "payments": [
     "Efectivo",
     "Transferencia",
     "Mercado Pago",
     "Tarjetas"
   ],
-  "hours": [
-    { "label": "Lunes a Viernes", "value": "08:00 a 13:00 · 15:00 a 19:00" },
-    { "label": "Sábados", "value": "08:00 a 13:00" },
-    { "label": "Domingos", "value": "Cerrado" }
-  ],
+  "hours": {
+    "weekdays": "08:00 a 13:00 · 15:00 a 19:00",
+    "saturday": "08:00 a 13:00",
+    "sunday": "Cerrado"
+  },
   "priceRange": "$5.000 - $10.000",
   "ctaPrimaryText": "Escribinos por WhatsApp",
   "ctaSecondaryText": "Cómo llegar",
   "promo": {
     "enabled": false,
-    "title": "Promo",
     "text": "Consultá las promos del día en el local.",
     "ctaText": "Ver menú",
     "ctaHref": "/indexMenu.html"
   },
-  "menuNote": "Escaneá el QR o abrí el menú para ver la carta completa."
+  "menuNote": "Escaneá el QR o abrí el menú para ver la carta completa.",
+  "logoUrl": "/logo.jpg"
 }
