@@ -22,7 +22,7 @@
   "about": "Café de especialidad · pastelería · sandwiches. Hecho con amor en Quilmes.",
   "promo": {
     "enabled": true,
-    "text": "Promo: 2x1 en espresso de 08:00 a 10:00",
+    "text": "Promo: 3x1 en espresso de 08:00 a 10:00",
     "ctaText": "Reservar por WhatsApp",
     "ctaHref": ""
   },
