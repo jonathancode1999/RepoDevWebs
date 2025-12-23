@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Voltri · Admin (Carta)</title>
+  <title>Voltri · Admin</title>
   <meta name="theme-color" content="#0f0f0f" />
   <style>
     :root{
@@ -48,6 +48,14 @@
       color:#0b1510;border-color: rgba(66,211,122,.35);
     }
     .btn.danger{border-color:rgba(255,107,107,.25);background:rgba(255,107,107,.10)}
+    .btn.tab{
+      background: rgba(255,255,255,.04);
+      border-color: rgba(255,255,255,.10);
+    }
+    .btn.tab.active{
+      border-color: rgba(215,176,122,.45);
+      background: rgba(215,176,122,.14);
+    }
     textarea{
       width:100%;
       min-height: 460px;
@@ -89,6 +97,7 @@
     input:focus{border-color:rgba(215,176,122,.35)}
     .small{font-size:12px;color:var(--muted)}
     code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.08)}
+    ul{margin:8px 0 0 18px;padding:0}
   </style>
 </head>
 <body>
@@ -96,13 +105,18 @@
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div>
-          <h1>Admin · Carta (products.json)</h1>
-          <div class="muted">Editá y guardá la carta que usan <code>index.html</code> e <code>indexMenu.html</code>.</div>
+          <h1>Admin</h1>
+          <div class="muted">Editá la <code>carta</code> y los <code>datos del sitio</code>. Guarda en la base y se refleja en <code>index</code> / <code>indexMenu</code>.</div>
         </div>
         <div class="row">
           <a class="btn" href="/" target="_blank" rel="noopener">Abrir sitio</a>
           <button class="btn" id="btnReload" type="button">Recargar</button>
         </div>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn tab active" id="tabProducts" type="button">Carta (products.json)</button>
+        <button class="btn tab" id="tabSite" type="button">Datos del sitio (site.json)</button>
       </div>
 
       <div class="grid">
@@ -130,21 +144,12 @@
           <div class="kv">
             <div class="k">Validación rápida</div>
             <div id="status" class="status">Esperando…</div>
-            <div class="small" style="margin-top:8px">
-              Reglas mínimas (según pestaña):
-              <ul>
-                <li><code>categories</code> es array</li>
-                <li>cada category tiene <code>category</code> y <code>items</code></li>
-                <li>cada item tiene <code>name</code>, <code>description</code>, <code>price</code></li>
-              </ul>
-            </div>
+            <div class="small" style="margin-top:8px" id="rules"></div>
           </div>
 
           <div class="kv">
             <div class="k">Atajos</div>
-            <div class="small">
-              <b>Ctrl+S</b> guardar · <b>Ctrl+Shift+F</b> formatear
-            </div>
+            <div class="small"><b>Ctrl+S</b> guardar · <b>Ctrl+Shift+F</b> formatear</div>
           </div>
         </aside>
       </div>
@@ -152,7 +157,6 @@
   </main>
 
 <script>
-
 const TOKEN_KEY = "voltri_admin_token_v1";
 let MODE = "products"; // products | site
 
@@ -160,21 +164,22 @@ const editor = document.getElementById("editor");
 const tokenInput = document.getElementById("token");
 const statusBox = document.getElementById("status");
 const hint = document.getElementById("hint");
+const rulesBox = document.getElementById("rules");
 
 const tabProducts = document.getElementById("tabProducts");
 const tabSite = document.getElementById("tabSite");
 
-function setActiveTab(){
-  if(!tabProducts || !tabSite) return;
-  tabProducts.style.opacity = MODE === "products" ? "1" : "0.7";
-  tabSite.style.opacity = MODE === "site" ? "1" : "0.7";
-  tabProducts.style.outline = MODE === "products" ? "2px solid rgba(255,255,255,.25)" : "none";
-  tabSite.style.outline = MODE === "site" ? "2px solid rgba(255,255,255,.25)" : "none";
-}
-
 function setStatus(ok, msg){
   statusBox.className = "status " + (ok ? "ok" : "bad");
   statusBox.textContent = msg;
+}
+
+function setActiveTab(){
+  tabProducts.classList.toggle("active", MODE === "products");
+  tabSite.classList.toggle("active", MODE === "site");
+  rulesBox.innerHTML = (MODE === "site")
+    ? `Reglas mínimas:\n<ul>\n<li><code>businessName</code> string</li>\n<li><code>whatsappE164</code> string (ej: <code>5491125052219</code>)</li>\n<li><code>addressShort</code> string</li>\n<li><code>hours</code> { <code>weekdays</code>, <code>saturday</code> }</li>\n<li><code>heroSubtitle</code>, <code>aboutText</code> strings</li>\n</ul>`
+    : `Reglas mínimas:\n<ul>\n<li><code>categories</code> es array</li>\n<li>cada category tiene <code>category</code> y <code>items</code></li>\n<li>cada item tiene <code>name</code>, <code>description</code>, <code>price</code></li>\n</ul>`;
 }
 
 function validateProducts(obj){
@@ -194,13 +199,14 @@ function validateProducts(obj){
 function validateSite(obj){
   if(!obj || typeof obj !== "object") return "site.json debe ser un objeto";
   if(typeof obj.businessName !== "string" || !obj.businessName.trim()) return "Falta businessName";
-  if(typeof obj.whatsappE164 !== "string" || !obj.whatsappE164.trim()) return "Falta whatsappE164 (ej: 5491125052219)";
+  if(typeof obj.whatsappE164 !== "string" || !obj.whatsappE164.trim()) return "Falta whatsappE164";
   if(typeof obj.addressShort !== "string") return "Falta addressShort";
   if(!obj.hours || typeof obj.hours !== "object") return "Falta hours {weekdays, saturday}";
   if(typeof obj.hours.weekdays !== "string") return "Falta hours.weekdays";
   if(typeof obj.hours.saturday !== "string") return "Falta hours.saturday";
+  if(typeof obj.heroSubtitle !== "string") return "Falta heroSubtitle";
+  if(typeof obj.aboutText !== "string") return "Falta aboutText";
   if(obj.payments && !Array.isArray(obj.payments)) return "payments debe ser array (o borrar)";
-  if(obj.promo && typeof obj.promo !== "object") return "promo debe ser objeto";
   return "";
 }
 
@@ -242,122 +248,42 @@ async function save(){
   hint.textContent = "";
   const token = tokenInput.value.trim() || localStorage.getItem(TOKEN_KEY) || "";
   if(!token){ setStatus(false, "Pegá el token para guardar"); return; }
-  try{
-    const obj = JSON.parse(editor.value);
-    const err = validateCurrent(obj);
-    if(err){ setStatus(false, "No guardé: " + err); return; }
 
-    localStorage.setItem(TOKEN_KEY, token);
+  let obj;
+  try{ obj = JSON.parse(editor.value); }
+  catch{ setStatus(false, "No guardé: JSON inválido"); return; }
 
-    const url = MODE === "site" ? "/api/site" : "/api/products";
-    const res = await fetch(url, {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json",
-        "authorization": "Bearer " + token
-      },
-      body: JSON.stringify(obj)
-    });
+  const err = validateCurrent(obj);
+  if(err){ setStatus(false, "No guardé: " + err); return; }
 
-    if(!res.ok){
-      const t = await res.text();
-      setStatus(false, "Error al guardar ("+res.status+"): " + t);
-      return;
-    }
+  localStorage.setItem(TOKEN_KEY, token);
 
-    setStatus(true, "Guardado ✅");
-    hint.textContent = "Listo. Refrescá el sitio para ver cambios.";
-  }catch(e){
-    setStatus(false, "No guardé: JSON inválido");
+  const url = MODE === "site" ? "/api/site" : "/api/products";
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json",
+      "authorization": "Bearer " + token
+    },
+    body: JSON.stringify(obj)
+  });
+
+  if(!res.ok){
+    const t = await res.text();
+    setStatus(false, "Error al guardar ("+res.status+"): " + t);
+    return;
   }
-}
 
-function setStatus(ok, msg){
-  statusBox.className = "status " + (ok ? "ok" : "bad");
-  statusBox.textContent = msg;
-}
-function validateCurrent(obj){
-  if(!obj || !Array.isArray(obj.categories)) return "Falta categories[]";
-  for(const c of obj.categories){
-    if(!c || typeof c.category !== "string") return "Category inválida (category)";
-    if(!Array.isArray(c.items)) return "Category inválida (items)";
-    for(const it of c.items){
-      if(!it || typeof it.name !== "string") return "Item inválido (name)";
-      if(typeof it.description !== "string") return "Item inválido (description)";
-      if(typeof it.price !== "string") return "Item inválido (price)";
-    }
-  }
-  return "";
-}
-
-async function load(){
-  hint.textContent = "";
-  setStatus(true, "Cargando…");
-  const res = await fetch("/products.json", { cache: "no-store" });
-  const txt = await res.text();
-  editor.value = txt;
-  try{
-    const obj = JSON.parse(txt);
-    const err = validateCurrent(obj);
-    if(err) setStatus(false, "JSON válido, pero: " + err);
-    else setStatus(true, "OK · JSON válido");
-  }catch{
-    setStatus(false, "JSON inválido (no parsea)");
-  }
-}
-
-function format(){
-  try{
-    const obj = JSON.parse(editor.value);
-    editor.value = JSON.stringify(obj, null, 2);
-    const err = validateCurrent(obj);
-    if(err) setStatus(false, "JSON válido, pero: " + err);
-    else setStatus(true, "OK · Formateado");
-  }catch{
-    setStatus(false, "No se puede formatear: JSON inválido");
-  }
-}
-
-async function save(){
-  hint.textContent = "";
-  const token = tokenInput.value.trim() || localStorage.getItem(TOKEN_KEY) || "";
-  if(!token){ setStatus(false, "Pegá el token para guardar"); return; }
-  try{
-    const obj = JSON.parse(editor.value);
-    const err = validateCurrent(obj);
-    if(err){ setStatus(false, "No guardé: " + err); return; }
-
-    localStorage.setItem(TOKEN_KEY, token);
-
-    const res = await fetch("/api/products", {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json",
-        "authorization": "Bearer " + token
-      },
-      body: JSON.stringify(obj)
-    });
-
-    if(!res.ok){
-      const t = await res.text();
-      setStatus(false, "Error al guardar ("+res.status+"): " + t);
-      return;
-    }
-
-    setStatus(true, "Guardado ✅");
-    hint.textContent = "Listo. Refrescá el sitio para ver cambios.";
-  }catch(e){
-    setStatus(false, "No guardé: JSON inválido");
-  }
+  setStatus(true, "Guardado ✅");
+  hint.textContent = "Listo. Refrescá el sitio para ver cambios.";
 }
 
 document.getElementById("btnReload").addEventListener("click", load);
 document.getElementById("btnFormat").addEventListener("click", format);
 document.getElementById("btnSave").addEventListener("click", save);
 
-if(tabProducts) tabProducts.addEventListener("click", ()=>{ MODE="products"; load(); });
-if(tabSite) tabSite.addEventListener("click", ()=>{ MODE="site"; load(); });
-
+tabProducts.addEventListener("click", ()=>{ MODE = "products"; load(); });
+tabSite.addEventListener("click", ()=>{ MODE = "site"; load(); });
 
 document.getElementById("btnResetToken").addEventListener("click", () => {
   localStorage.removeItem(TOKEN_KEY);
@@ -387,6 +313,7 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
+setActiveTab();
 load();
 </script>
 </body>
