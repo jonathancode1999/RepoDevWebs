@@ -1,0 +1,81 @@
+{
+  "business": "Voltri",
+  "currency": "ARS",
+  "categories": [
+    {
+      "category": "☕ Café",
+      "items": [
+        {
+          "name": "Espresso",
+          "description": "Clásico, intenso",
+          "price": "$3.500"
+        },
+        {
+          "name": "Americano",
+          "description": "Espresso + agua",
+          "price": "$3.800"
+        },
+        {
+          "name": "Flat White",
+          "description": "Suave, cremoso",
+          "price": "$4.600"
+        },
+        {
+          "name": "Latte",
+          "description": "Con leche",
+          "price": "$4.800"
+        }
+      ]
+    },
+    {
+      "category": "🍰 Tortas & Dulce",
+      "items": [
+        {
+          "name": "Budín (porción)",
+          "description": "Banana / Arándanos (según día)",
+          "price": "$4.200"
+        },
+        {
+          "name": "Torta del día",
+          "description": "Consultar variedad",
+          "price": "$5.500"
+        },
+        {
+          "name": "Alfajor casero",
+          "description": "Hecho en casa",
+          "price": "$2.500"
+        },
+        {
+          "name": "Canoli",
+          "description": "Estilo italiano",
+          "price": "$4.800"
+        }
+      ]
+    },
+    {
+      "category": "⭐ Especiales",
+      "items": [
+        {
+          "name": "Café “de galletita”",
+          "description": "Con toque de chocolate",
+          "price": "$5.200"
+        },
+        {
+          "name": "Scones de queso",
+          "description": "Recomendados",
+          "price": "$3.900"
+        },
+        {
+          "name": "Combo café + dulce",
+          "description": "Consultá promos",
+          "price": "$8.900"
+        },
+        {
+          "name": "Take away",
+          "description": "Pedido rápido para llevar",
+          "price": "—"
+        }
+      ]
+    }
+  ]
+}
