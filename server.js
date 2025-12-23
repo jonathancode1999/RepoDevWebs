@@ -43,6 +43,20 @@ async function upsertProductsToDb(obj) {
   );
 }
 
+async function getSiteFromDb() {
+  const r = await pool.query(`SELECT value FROM kv_store WHERE key='site' LIMIT 1;`);
+  return r.rows?.[0]?.value ?? null;
+}
+
+async function upsertSiteToDb(obj) {
+  await pool.query(
+    `INSERT INTO kv_store (key, value) VALUES ('site', $1)
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();`,
+    [obj]
+  );
+}
+
+
 // ====== Validation ======
 function validateProductsSchema(obj) {
   if (!obj || typeof obj !== "object") return "Body must be a JSON object";
@@ -59,20 +73,51 @@ function validateProductsSchema(obj) {
   return "";
 }
 
+function validateSiteSchema(obj) {
+  if (!obj || typeof obj !== "object") return "Body must be a JSON object";
+  if (typeof obj.businessName !== "string" || !obj.businessName.trim()) return "Invalid schema: businessName";
+  if (typeof obj.whatsappE164 !== "string" || !obj.whatsappE164.trim()) return "Invalid schema: whatsappE164";
+  if (typeof obj.addressShort !== "string") return "Invalid schema: addressShort";
+  if (!obj.hours || typeof obj.hours !== "object") return "Invalid schema: hours";
+  if (typeof obj.hours.weekdays !== "string") return "Invalid schema: hours.weekdays";
+  if (typeof obj.hours.saturday !== "string") return "Invalid schema: hours.saturday";
+  if (obj.payments && !Array.isArray(obj.payments)) return "Invalid schema: payments[]";
+  return "";
+}
+
+
 // Seed from local file (first deploy)
 async function seedIfEmpty() {
-  const current = await getProductsFromDb();
-  if (current) return;
-  const seedPath = path.join(__dirname, "products.seed.json");
-  try {
-    const raw = fs.readFileSync(seedPath, "utf-8");
-    const obj = JSON.parse(raw);
-    const err = validateProductsSchema(obj);
-    if (err) throw new Error(err);
-    await upsertProductsToDb(obj);
-    console.log("Seeded products from products.seed.json");
-  } catch (e) {
-    console.warn("Could not seed products:", e?.message || e);
+  // PRODUCTS
+  const currentProducts = await getProductsFromDb();
+  if (!currentProducts) {
+    const seedPath = path.join(__dirname, "products.seed.json");
+    try {
+      const raw = fs.readFileSync(seedPath, "utf-8");
+      const obj = JSON.parse(raw);
+      const err = validateProductsSchema(obj);
+      if (err) throw new Error(err);
+      await upsertProductsToDb(obj);
+      console.log("Seeded products from products.seed.json");
+    } catch (e) {
+      console.warn("Could not seed products:", e?.message || e);
+    }
+  }
+
+  // SITE
+  const currentSite = await getSiteFromDb();
+  if (!currentSite) {
+    const seedPath = path.join(__dirname, "site.seed.json");
+    try {
+      const raw = fs.readFileSync(seedPath, "utf-8");
+      const obj = JSON.parse(raw);
+      const err = validateSiteSchema(obj);
+      if (err) throw new Error(err);
+      await upsertSiteToDb(obj);
+      console.log("Seeded site from site.seed.json");
+    } catch (e) {
+      console.warn("Could not seed site:", e?.message || e);
+    }
   }
 }
 
@@ -95,6 +140,34 @@ app.get("/products.json", async (_req, res) => {
   }
 });
 
+// API: get site.json
+app.get("/site.json", async (_req, res) => {
+  try {
+    const obj = await getSiteFromDb();
+    res.setHeader("content-type", "application/json; charset=utf-8");
+    res.setHeader("cache-control", "no-store");
+    res.status(200).send(JSON.stringify(obj ?? {
+      businessName: "Voltri Café de Especialidad",
+      businessShort: "Voltri",
+      area: "Quilmes",
+      whatsappE164: "5491125052219",
+      instagramUrl: "https://www.instagram.com/voltricafe/?hl=es-la",
+      addressShort: "San Martín 780, Quilmes (B1878)",
+      addressFull: "San Martín 780, Quilmes, Provincia de Buenos Aires.",
+      mapsSearchUrl: "https://www.google.com/maps/search/?api=1&query=San+Mart%C3%ADn+780,+Quilmes",
+      mapsEmbedUrl: "",
+      hours: { weekdays: "08:00–20:00", saturday: "09:00–21:00", sunday: "Cerrado" },
+      payments: ["Efectivo", "Débito", "Crédito", "Mercado Pago"],
+      about: "Café de especialidad · pastelería · sandwiches. Hecho con amor en Quilmes.",
+      promo: { enabled: true, text: "Promo: 2x1 en espresso de 08:00 a 10:00", ctaText: "Reservar por WhatsApp", ctaHref: "" },
+      logoUrl: ""
+    }, null, 2));
+  } catch (_e) {
+    res.status(500).send("DB error");
+  }
+});
+
+
 // API: update products
 app.put("/api/products", async (req, res) => {
   try {
@@ -111,6 +184,24 @@ app.put("/api/products", async (req, res) => {
     res.status(500).send("DB error");
   }
 });
+
+// API: update site
+app.put("/api/site", async (req, res) => {
+  try {
+    if (!ADMIN_TOKEN) return res.status(500).send("Missing ADMIN_TOKEN env var");
+    const auth = req.headers.authorization || "";
+    if (auth !== `Bearer ${ADMIN_TOKEN}`) return res.status(401).send("Unauthorized");
+
+    const err = validateSiteSchema(req.body);
+    if (err) return res.status(400).send(err);
+
+    await upsertSiteToDb(req.body);
+    res.status(200).send("OK");
+  } catch (_e) {
+    res.status(500).send("DB error");
+  }
+});
+
 
 // Convenience route
 app.get("/admin", (_req, res) => {

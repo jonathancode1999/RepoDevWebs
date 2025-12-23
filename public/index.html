@@ -362,10 +362,10 @@
   <!-- Promo banner (editable) -->
   <div class="promo">
     <div class="wrap">
-      <div class="promoTxt">
+      <div class="promoTxt" id="promoText">
         ⭐ Promo: <span>2x1 en Espresso hasta las 11:00</span>
       </div>
-      <a class="btn primary" href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20%C2%BFme%20reserv%C3%A1s%20la%20promo%202x1%20en%20espresso%3F" target="_blank" rel="noopener">
+      <a class="btn primary" id="promoBtn" href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20%C2%BFme%20reserv%C3%A1s%20la%20promo%202x1%20en%20espresso%3F" target="_blank" rel="noopener">
         Pedir por WhatsApp
       </a>
     </div>
@@ -375,7 +375,7 @@
     <div class="wrap">
       <div class="brand">
         <a class="logo" href="#" aria-label="Ir al inicio">
-          <img src="logo.jpg" alt="Voltri Café de Especialidad" onerror="this.closest('.logo').classList.add('is-fallback')" />
+          <img src="logo.jpg" alt="Voltri Café de Especialidad" id="logoImg" onerror="this.closest('.logo').classList.add('is-fallback')" />
           <span class="fallback">VOLTRI</span>
         </a>
         <div>
@@ -395,7 +395,7 @@
       </nav>
 
       <div class="cta">
-        <a class="btn" href="https://www.instagram.com/voltricafe/?hl=es-la" target="_blank" rel="noopener">Instagram</a>
+        <a class="btn" href="https://www.instagram.com/voltricafe/?hl=es-la" id="igLink" target="_blank" rel="noopener">Instagram</a>
         <a class="btn primary" href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20quiero%20consultar%20por%20cafe%20y%20horarios%20%F0%9F%98%8A" target="_blank" rel="noopener">WhatsApp</a>
       </div>
     </div>
@@ -406,7 +406,7 @@
       <div class="grid">
         <div class="card">
           <div class="badge">☕ Café de especialidad · Salón y take away</div>
-          <h1>Voltri Café de Especialidad</h1>
+          <h1 id="bizName">Voltri Café de Especialidad</h1>
           <p class="sub">
             Un lugar para cortar el día con buen café, algo rico y atención cercana.
             <span class="muted">Pet friendly 🐶 · Quilmes</span>
@@ -444,7 +444,7 @@
             <div class="cols">
               <div class="kv">
                 <div class="k">Dirección</div>
-                <div class="v">San Martín 780, Quilmes (B1878)</div>
+                <div class="v" id="addrShort">San Martín 780, Quilmes (B1878)</div>
                 <div class="small">
                   <a target="_blank" rel="noopener"
                      href="https://www.google.com/maps/search/?api=1&query=San%20Mart%C3%ADn%20780%2C%20Quilmes%2C%20Buenos%20Aires">
@@ -503,7 +503,7 @@
 
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <a class="btn primary" href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20quiero%20reservar%2Fconsultar%20%F0%9F%98%8A" target="_blank" rel="noopener">Reservas / Consultas</a>
-            <a class="btn" href="https://www.instagram.com/voltricafe/?hl=es-la" target="_blank" rel="noopener">Ver novedades</a>
+            <a class="btn" href="https://www.instagram.com/voltricafe/?hl=es-la" id="igLink" target="_blank" rel="noopener">Ver novedades</a>
             <a class="btn" href="#ubicacion">Cómo llegar</a>
           </div>
         </div>
@@ -599,7 +599,7 @@
       <div class="card">
         <h2>Ubicación</h2>
         <p class="muted" style="margin-top:0">
-          San Martín 780, Quilmes, Provincia de Buenos Aires.
+          <span id="addrFull">San Martín 780, Quilmes, Provincia de Buenos Aires.</span>
         </p>
 
         <iframe
@@ -717,8 +717,8 @@
     <footer>
       <div class="hr"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
-        <div>© <span id="y"></span> Voltri · Quilmes</div>
-        <div class="small">San Martín 780 · WhatsApp: 11 2505-2219 · <a href="https://www.instagram.com/voltricafe/?hl=es-la" target="_blank" rel="noopener">Instagram</a></div>
+        <div>© <span id="y"></span> <span id="footerName">Voltri</span> · <span id="footerArea">Quilmes</span></div>
+        <div class="small">San Martín 780 · WhatsApp: 11 2505-2219 · <a href="https://www.instagram.com/voltricafe/?hl=es-la" id="igLink" target="_blank" rel="noopener">Instagram</a></div>
       </div>
     </footer>
   </main>
@@ -929,5 +929,74 @@
     }
 
   </script>
+
+<script>
+(async function(){
+  try{
+    const r = await fetch('/site.json', {cache:'no-store'});
+    if(!r.ok) return;
+    const site = await r.json();
+
+    const setTxt = (id, val) => {
+      const el = document.getElementById(id);
+      if(el && typeof val === 'string') el.textContent = val;
+    };
+
+    setTxt('bizName', site.businessName);
+    setTxt('footerName', site.businessShort || site.businessName);
+    setTxt('footerArea', site.area || 'Quilmes');
+    setTxt('addrShort', site.addressShort);
+    setTxt('addrFull', site.addressFull);
+    setTxt('hoursWeek', site.hours && site.hours.weekdays);
+    setTxt('hoursSat', site.hours && site.hours.saturday);
+    if(Array.isArray(site.payments)) setTxt('payments', site.payments.join(' · '));
+    else setTxt('payments', site.payments);
+    setTxt('aboutText', site.about);
+
+    // Promo
+    if(site.promo){
+      const promo = document.querySelector('.promo');
+      const promoText = document.getElementById('promoText');
+      const promoBtn = document.getElementById('promoBtn');
+      if(site.promo.enabled === false && promo) promo.style.display = 'none';
+      if(promoText && site.promo.text) promoText.innerHTML = site.promo.text;
+      if(promoBtn){
+        if(site.promo.ctaText) promoBtn.textContent = site.promo.ctaText;
+        if(site.promo.ctaHref) promoBtn.href = site.promo.ctaHref;
+      }
+    }
+
+    // Instagram
+    const ig = document.getElementById('igLink');
+    if(ig && site.instagramUrl) ig.href = site.instagramUrl;
+
+    // WhatsApp links: replace number (keeps message)
+    if(site.whatsappE164){
+      document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a=>{
+        a.href = a.href.replace(/https:\/\/wa\.me\/\d+/, 'https://wa.me/' + site.whatsappE164);
+      });
+    }
+
+    // Maps
+    if(site.mapsSearchUrl){
+      document.querySelectorAll('a[href^="https://www.google.com/maps/search/?api=1&query="]').forEach(a=>{
+        a.href = site.mapsSearchUrl;
+      });
+    }
+    if(site.mapsEmbedUrl){
+      const iframe = document.querySelector('iframe[src^="https://www.google.com/maps?q="]');
+      if(iframe) iframe.src = site.mapsEmbedUrl;
+    }
+
+    // Logo
+    if(site.logoUrl){
+      document.querySelectorAll('img[src="logo.jpg"], img[src="/logo.jpg"], img[src="./logo.jpg"]').forEach(img=>{
+        img.src = site.logoUrl;
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
 </body>
 </html>

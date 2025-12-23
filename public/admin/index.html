@@ -131,7 +131,7 @@
             <div class="k">Validación rápida</div>
             <div id="status" class="status">Esperando…</div>
             <div class="small" style="margin-top:8px">
-              Reglas mínimas:
+              Reglas mínimas (según pestaña):
               <ul>
                 <li><code>categories</code> es array</li>
                 <li>cada category tiene <code>category</code> y <code>items</code></li>
@@ -152,18 +152,131 @@
   </main>
 
 <script>
+
 const TOKEN_KEY = "voltri_admin_token_v1";
+let MODE = "products"; // products | site
 
 const editor = document.getElementById("editor");
 const tokenInput = document.getElementById("token");
 const statusBox = document.getElementById("status");
 const hint = document.getElementById("hint");
 
+const tabProducts = document.getElementById("tabProducts");
+const tabSite = document.getElementById("tabSite");
+
+function setActiveTab(){
+  if(!tabProducts || !tabSite) return;
+  tabProducts.style.opacity = MODE === "products" ? "1" : "0.7";
+  tabSite.style.opacity = MODE === "site" ? "1" : "0.7";
+  tabProducts.style.outline = MODE === "products" ? "2px solid rgba(255,255,255,.25)" : "none";
+  tabSite.style.outline = MODE === "site" ? "2px solid rgba(255,255,255,.25)" : "none";
+}
+
 function setStatus(ok, msg){
   statusBox.className = "status " + (ok ? "ok" : "bad");
   statusBox.textContent = msg;
 }
-function validateJson(obj){
+
+function validateProducts(obj){
+  if(!obj || !Array.isArray(obj.categories)) return "Falta categories[]";
+  for(const c of obj.categories){
+    if(!c || typeof c.category !== "string") return "Category inválida (category)";
+    if(!Array.isArray(c.items)) return "Category inválida (items)";
+    for(const it of c.items){
+      if(!it || typeof it.name !== "string") return "Item inválido (name)";
+      if(typeof it.description !== "string") return "Item inválido (description)";
+      if(typeof it.price !== "string") return "Item inválido (price)";
+    }
+  }
+  return "";
+}
+
+function validateSite(obj){
+  if(!obj || typeof obj !== "object") return "site.json debe ser un objeto";
+  if(typeof obj.businessName !== "string" || !obj.businessName.trim()) return "Falta businessName";
+  if(typeof obj.whatsappE164 !== "string" || !obj.whatsappE164.trim()) return "Falta whatsappE164 (ej: 5491125052219)";
+  if(typeof obj.addressShort !== "string") return "Falta addressShort";
+  if(!obj.hours || typeof obj.hours !== "object") return "Falta hours {weekdays, saturday}";
+  if(typeof obj.hours.weekdays !== "string") return "Falta hours.weekdays";
+  if(typeof obj.hours.saturday !== "string") return "Falta hours.saturday";
+  if(obj.payments && !Array.isArray(obj.payments)) return "payments debe ser array (o borrar)";
+  if(obj.promo && typeof obj.promo !== "object") return "promo debe ser objeto";
+  return "";
+}
+
+function validateCurrent(obj){
+  return MODE === "site" ? validateSite(obj) : validateProducts(obj);
+}
+
+async function load(){
+  hint.textContent = "";
+  setActiveTab();
+  setStatus(true, "Cargando…");
+  const url = MODE === "site" ? "/site.json" : "/products.json";
+  const res = await fetch(url, { cache: "no-store" });
+  const txt = await res.text();
+  editor.value = txt;
+  try{
+    const obj = JSON.parse(txt);
+    const err = validateCurrent(obj);
+    if(err) setStatus(false, "JSON válido, pero: " + err);
+    else setStatus(true, "OK · JSON válido");
+  }catch{
+    setStatus(false, "JSON inválido (no parsea)");
+  }
+}
+
+function format(){
+  try{
+    const obj = JSON.parse(editor.value);
+    editor.value = JSON.stringify(obj, null, 2);
+    const err = validateCurrent(obj);
+    if(err) setStatus(false, "JSON válido, pero: " + err);
+    else setStatus(true, "OK · Formateado");
+  }catch{
+    setStatus(false, "No se puede formatear: JSON inválido");
+  }
+}
+
+async function save(){
+  hint.textContent = "";
+  const token = tokenInput.value.trim() || localStorage.getItem(TOKEN_KEY) || "";
+  if(!token){ setStatus(false, "Pegá el token para guardar"); return; }
+  try{
+    const obj = JSON.parse(editor.value);
+    const err = validateCurrent(obj);
+    if(err){ setStatus(false, "No guardé: " + err); return; }
+
+    localStorage.setItem(TOKEN_KEY, token);
+
+    const url = MODE === "site" ? "/api/site" : "/api/products";
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        "authorization": "Bearer " + token
+      },
+      body: JSON.stringify(obj)
+    });
+
+    if(!res.ok){
+      const t = await res.text();
+      setStatus(false, "Error al guardar ("+res.status+"): " + t);
+      return;
+    }
+
+    setStatus(true, "Guardado ✅");
+    hint.textContent = "Listo. Refrescá el sitio para ver cambios.";
+  }catch(e){
+    setStatus(false, "No guardé: JSON inválido");
+  }
+}
+
+function setStatus(ok, msg){
+  statusBox.className = "status " + (ok ? "ok" : "bad");
+  statusBox.textContent = msg;
+}
+function validateCurrent(obj){
   if(!obj || !Array.isArray(obj.categories)) return "Falta categories[]";
   for(const c of obj.categories){
     if(!c || typeof c.category !== "string") return "Category inválida (category)";
@@ -185,7 +298,7 @@ async function load(){
   editor.value = txt;
   try{
     const obj = JSON.parse(txt);
-    const err = validateJson(obj);
+    const err = validateCurrent(obj);
     if(err) setStatus(false, "JSON válido, pero: " + err);
     else setStatus(true, "OK · JSON válido");
   }catch{
@@ -197,7 +310,7 @@ function format(){
   try{
     const obj = JSON.parse(editor.value);
     editor.value = JSON.stringify(obj, null, 2);
-    const err = validateJson(obj);
+    const err = validateCurrent(obj);
     if(err) setStatus(false, "JSON válido, pero: " + err);
     else setStatus(true, "OK · Formateado");
   }catch{
@@ -211,7 +324,7 @@ async function save(){
   if(!token){ setStatus(false, "Pegá el token para guardar"); return; }
   try{
     const obj = JSON.parse(editor.value);
-    const err = validateJson(obj);
+    const err = validateCurrent(obj);
     if(err){ setStatus(false, "No guardé: " + err); return; }
 
     localStorage.setItem(TOKEN_KEY, token);
@@ -242,6 +355,10 @@ document.getElementById("btnReload").addEventListener("click", load);
 document.getElementById("btnFormat").addEventListener("click", format);
 document.getElementById("btnSave").addEventListener("click", save);
 
+if(tabProducts) tabProducts.addEventListener("click", ()=>{ MODE="products"; load(); });
+if(tabSite) tabSite.addEventListener("click", ()=>{ MODE="site"; load(); });
+
+
 document.getElementById("btnResetToken").addEventListener("click", () => {
   localStorage.removeItem(TOKEN_KEY);
   tokenInput.value = "";
@@ -253,7 +370,7 @@ tokenInput.value = localStorage.getItem(TOKEN_KEY) || "";
 editor.addEventListener("input", () => {
   try{
     const obj = JSON.parse(editor.value);
-    const err = validateJson(obj);
+    const err = validateCurrent(obj);
     if(err) setStatus(false, "JSON válido, pero: " + err);
     else setStatus(true, "OK · JSON válido");
   }catch{

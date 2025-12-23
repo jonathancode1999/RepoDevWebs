@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Voltri · Carta rápida (Pedido)</title>
+<title id="docTitle">Voltri · Menú</title>
 
 <style>
 :root{
@@ -452,5 +452,31 @@ async function copyOrder(){ try{ await navigator.clipboard.writeText(buildText()
 
 (async function init(){ await loadMenuFromJson(); const loaded = tryLoadCartFromUrl(); renderMenu(); renderCart(); if(loaded){ showOrder(); } })();
 </script>
+
+<script>
+(async function(){
+  try{
+    const r = await fetch('/site.json', {cache:'no-store'});
+    if(!r.ok) return;
+    const site = await r.json();
+    if(site.businessName){
+      document.title = (site.businessShort || site.businessName) + ' · Menú';
+      const h = document.getElementById('menuBizName');
+      if(h) h.textContent = site.businessName;
+    }
+    if(site.whatsappE164){
+      document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a=>{
+        a.href = a.href.replace(/https:\/\/wa\.me\/\d+/, 'https://wa.me/' + site.whatsappE164);
+      });
+    }
+    if(site.logoUrl){
+      document.querySelectorAll('img[src="logo.jpg"], img[src="/logo.jpg"], img[src="./logo.jpg"]').forEach(img=>{
+        img.src = site.logoUrl;
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
 </body>
 </html>
