@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Voltri · Carta rápida (Pedido)</title>
+<title>Carta rápida (Pedido)</title>
 
 <style>
 :root{
@@ -233,14 +233,14 @@ h1{margin:6px 0 2px;font-size:28px;letter-spacing:-.02em}
   <div class="card">
     <div class="logoRow">
       <div class="brandLeft">
-        <a class="brandLogo" href="#" aria-label="Ir al inicio">
-          <img src="logo.jpg" alt="Voltri" onerror="this.closest('.brandLogo').classList.add('is-fallback')" />
-          <span class="fallback">VOLTRI</span>
+        <a class="brandLogo" href="/" aria-label="Ir al inicio">
+          <img src="logo.jpg" alt="Logo" onerror="this.closest('.brandLogo').classList.add('is-fallback')" />
+          <span class="fallback" id="fallbackBrand">NEGOCIO</span>
         </a>
         <div>
-          <div class="badge">☕ Café de especialidad · Quilmes</div>
-          <h1 style="margin:6px 0">Carta rápida</h1>
-          <div class="muted">Elegí tu pedido y envialo o mostralo</div>
+          <div class="badge" id="badgeTop">☕ Carta</div>
+          <h1 style="margin:6px 0" id="titleTop">Carta rápida</h1>
+          <div class="muted" id="subTop">Elegí tu pedido y envialo o mostralo</div>
         </div>
       </div>
       <a class="btn primary" id="waTop" href="#" target="_blank" rel="noopener">WhatsApp</a>
@@ -282,22 +282,50 @@ h1{margin:6px 0 2px;font-size:28px;letter-spacing:-.02em}
       </div>
       <div>
         <div class="qrBox" id="qrBox"><div class="small">QR listo</div></div>
-        <div class="qrHint">El QR contiene solo el texto del pedido.</div>
+        <div class="qrHint" id="qrHint">El QR contiene solo el texto del pedido.</div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
+/* ===== helpers ===== */
+function safeStr(v){ return (typeof v === "string") ? v : ""; }
+function parsePriceToNumber(priceText){
+  const digits = String(priceText || "").replace(/[^0-9]/g, "");
+  return digits ? parseInt(digits, 10) : 0;
+}
+function slugify(str){
+  return String(str || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 
-/* ===== APP ===== */
+/* ===== site load (compatible con tu site.json plano) ===== */
+let WHATSAPP_NUMBER = "";
+let SITE_RAW = null;
 
 async function loadSite(){
   try{
     const res = await fetch("/site.json", { cache: "no-store" });
     if(!res.ok) throw new Error("site.json not found");
-    SITE = await res.json();
-    WHATSAPP_NUMBER = (SITE && SITE.contact && SITE.contact.whatsappNumber) ? SITE.contact.whatsappNumber : WHATSAPP_NUMBER;
+    SITE_RAW = await res.json();
+
+    const name = safeStr(SITE_RAW.businessName) || "Negocio";
+    const area = safeStr(SITE_RAW.area);
+    const about = safeStr(SITE_RAW.about);
+
+    // whatsapp: soporta whatsappE164 (plano) o contact.whatsappNumber (anidado)
+    const wa = safeStr(SITE_RAW.whatsappE164) || safeStr(SITE_RAW?.contact?.whatsappNumber);
+    WHATSAPP_NUMBER = wa;
+
+    // Top info
+    document.getElementById("fallbackBrand").textContent = (safeStr(SITE_RAW.businessShort) || name).toUpperCase();
+    document.getElementById("badgeTop").textContent = (area ? ("☕ " + area) : "☕ Carta");
+    document.getElementById("titleTop").textContent = "Carta rápida · " + (safeStr(SITE_RAW.businessShort) || name);
+    document.getElementById("subTop").textContent = about || "Elegí tu pedido y envialo o mostralo";
 
     // Top WA button
     const waBtn = document.getElementById("waTop");
@@ -309,31 +337,34 @@ async function loadSite(){
     const addr = document.getElementById("siteAddress");
     const hrs = document.getElementById("siteHours");
     const pay = document.getElementById("sitePayments");
-    if(addr) addr.textContent = (SITE.location && SITE.location.addressLine) ? SITE.location.addressLine : "";
-    if(hrs) hrs.innerHTML = (SITE.hours && SITE.hours.summary) ? SITE.hours.summary.replaceAll(" / ","<br>").replaceAll("·","·") : "";
-    if(pay) pay.textContent = SITE.paymentsLine || "";
+
+    const addressLine = safeStr(SITE_RAW.addressFull) || safeStr(SITE_RAW.addressShort) || safeStr(SITE_RAW?.location?.addressLine);
+    if(addr) addr.textContent = addressLine || "—";
+
+    let hoursSummary = "";
+    if(SITE_RAW.hours && typeof SITE_RAW.hours === "object"){
+      hoursSummary = [
+        SITE_RAW.hours.weekdays ? ("Lun–Vie " + SITE_RAW.hours.weekdays) : "",
+        SITE_RAW.hours.saturday ? ("Sáb " + SITE_RAW.hours.saturday) : "",
+        SITE_RAW.hours.sunday ? ("Dom " + SITE_RAW.hours.sunday) : ""
+      ].filter(Boolean).join(" / ");
+    }else{
+      hoursSummary = safeStr(SITE_RAW?.hours?.summary);
+    }
+    if(hrs) hrs.innerHTML = (hoursSummary || "—").replaceAll(" / ","<br>");
+
+    const paymentsLine = Array.isArray(SITE_RAW.payments) ? SITE_RAW.payments.join(" · ") : (safeStr(SITE_RAW.paymentsLine) || "");
+    if(pay) pay.textContent = paymentsLine || "—";
+
   }catch(e){
     // ignore
   }
 }
 
-let WHATSAPP_NUMBER="";
-let SITE=null;
+/* ===== menu/cart ===== */
+let MENU = [];
+let cart = {};
 
-let MENU=[];
-let cart={};
-
-function slugify(str){
-  return String(str || "")
-    .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-function parsePriceToNumber(priceText){
-  const digits = String(priceText || "").replace(/[^0-9]/g, "");
-  return digits ? parseInt(digits, 10) : 0;
-}
 async function loadMenuFromJson(){
   try{
     const res = await fetch("products.json", { cache: "no-store" });
@@ -354,14 +385,12 @@ async function loadMenuFromJson(){
       })
     }));
   }catch(e){
-    // fallback: menu vacío
     MENU = [];
   }
 }
 
-
 function renderMenu(){
- const root=document.getElementById("menu"); root.innerHTML="";
+ const root = document.getElementById("menu"); root.innerHTML="";
  MENU.forEach((sec,i)=>{
   const s=document.createElement("div"); s.className="section";
   s.innerHTML=`<div class="sectionHeader" onclick="toggle(${i})">${sec.title}<span>Ver</span></div><div class="sectionBody" id="sec${i}"></div>`;
@@ -379,6 +408,7 @@ function renderMenu(){
 }
 function toggle(i){ const b=document.getElementById("sec"+i); b.style.display=b.style.display==="block"?"none":"block";}
 function add(id,d){ cart[id]=Math.max(0,(cart[id]||0)+d); document.getElementById("q"+id).textContent=cart[id]; renderCart();}
+
 function renderCart(){
  const c=document.getElementById("cart"); c.innerHTML=""; let total=0;
  for(const id in cart){ if(cart[id]>0){
@@ -388,6 +418,7 @@ function renderCart(){
  }}
  document.getElementById("total").textContent="$"+total;
 }
+
 function buildText(){
  let t="", total=0;
  for(const id in cart){ if(cart[id]>0){
@@ -397,18 +428,18 @@ function buildText(){
  if(!t) t="(Sin productos todavía)\n";
  t+=`\nTotal aprox: $${total}`; return t;
 }
+
 function sendWA(){
- const msg=encodeURIComponent("Hola Voltri!\n"+buildText()+"\n\n• Para: (llevar/consumir)\n• Mesa: ");
+ const msg=encodeURIComponent("Hola!\n"+buildText()+"\n\n• Para: (llevar/consumir)\n• Mesa: ");
  window.open("https://wa.me/"+WHATSAPP_NUMBER+"?text="+msg,"_blank","noopener");
 }
 
+/* ===== share token ===== */
 function encodeCartToken(){
-  // compact token: [["id",2],["id2",1]]
   const entries = Object.entries(cart)
     .filter(([_,q]) => q && q > 0)
     .map(([id,q]) => [id, q]);
   const json = JSON.stringify(entries);
-  // base64-url safe
   const b64 = btoa(unescape(encodeURIComponent(json)))
     .replaceAll("+","-").replaceAll("/","_").replaceAll("=","");
   return b64;
@@ -452,7 +483,6 @@ function showOrder(){
  document.getElementById("orderText").textContent=text;
 
  const shareUrl = getShareUrl();
-
  const box=document.getElementById("qrBox");
  box.innerHTML="";
  const img=document.createElement("img");
@@ -466,12 +496,6 @@ function showOrder(){
  const hint = document.getElementById("qrHint");
  if(hint) hint.textContent = "Escaneá para abrir el pedido";
 
- const link = document.getElementById("shareLink");
- if(link){
-   link.href = shareUrl;
-   link.textContent = shareUrl;
- }
-
  document.getElementById("modal").style.display="flex";
 }
 function closeModal(){ document.getElementById("modal").style.display="none";}
@@ -479,7 +503,11 @@ async function copyOrder(){ try{ await navigator.clipboard.writeText(buildText()
 
 (async function init(){
   await loadSite();
-  await loadMenuFromJson(); const loaded = tryLoadCartFromUrl(); renderMenu(); renderCart(); if(loaded){ showOrder(); } })();
+  await loadMenuFromJson();
+  const loaded = tryLoadCartFromUrl();
+  renderMenu(); renderCart();
+  if(loaded){ showOrder(); }
+})();
 </script>
 </body>
 </html>

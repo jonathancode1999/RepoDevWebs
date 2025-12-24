@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="es-AR">
 <head>
@@ -377,11 +378,6 @@
     return { open: false, msg: "Cerrado ahora", sub: summaryText || "" };
   }
 
-  function parsePriceToNumber(priceText){
-    const digits = String(priceText || "").replace(/[^0-9]/g, "");
-    return digits ? parseInt(digits, 10) : 0;
-  }
-
   function el(id){ return document.getElementById(id); }
 
   async function loadSite(){
@@ -421,6 +417,7 @@
   function applySite(site){
     const name = site?.businessName || "Mi negocio";
     const tagline = site?.tagline || "";
+
     el("brandName").textContent = name.toUpperCase();
     el("brandTagline").textContent = tagline;
     el("footName").textContent = name;
@@ -447,6 +444,8 @@
       el("promoText").innerHTML = `${promo.label || "⭐ Promo:"} <span>${promo.text || ""}</span>`;
       el("promoCta").textContent = promo.ctaText || "Pedir por WhatsApp";
       el("promoCta").href = promo.ctaLink || "#";
+    }else{
+      el("promo").style.display = "none";
     }
 
     // Contact/social
@@ -483,8 +482,7 @@
     el("statusSub").textContent = site?.hours?.summary || "";
     const st = computeOpenStatus(site?.hours?.schedule || {}, site?.hours?.summary || "");
     el("statusText").textContent = st.msg;
-    const statusBox = el("statusBox");
-    statusBox.classList.toggle("closed", !st.open);
+    el("statusBox").classList.toggle("closed", !st.open);
 
     // Featured
     el("featuredTitle").textContent = site?.featured?.title || "⭐ Destacado del día";
@@ -514,6 +512,7 @@
     // Menu note / footer extra
     el("menuNote").textContent = site?.menu?.note || "";
     el("footExtra").textContent = (site?.footer?.extra || "");
+    el("galleryNote").textContent = site?.gallery?.note || "";
   }
 
   function applyProducts(products){
@@ -560,14 +559,14 @@
   async function main(){
     try{
       const [site, products, gallery] = await Promise.all([loadSite(), loadProducts(), loadGalleryList()]);
-      // Basic SEO title/desc
+
       document.title = `${site.businessName || "Sitio"} | ${site.tagline || ""}`.trim();
       el("metaDesc").setAttribute("content", site.heroSubtitle || "");
+
       applySite(site);
       setWhatsLinks(site);
       applyProducts(products);
       setupGallery(gallery);
-      el("galleryNote").textContent = site?.gallery?.note || "";
     }catch(e){
       console.warn(e);
       el("statusText").textContent = "No se pudo cargar el sitio";

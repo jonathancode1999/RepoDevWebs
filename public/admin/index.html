@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Voltri · Admin (Sitio)</title>
+  <title>Admin (Sitio)</title>
   <meta name="theme-color" content="#0f0f0f" />
   <style>
     :root{
@@ -89,6 +89,7 @@
     input:focus{border-color:rgba(215,176,122,.35)}
     .small{font-size:12px;color:var(--muted)}
     code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.08)}
+    ul{margin:8px 0 0 18px;padding:0}
   </style>
 </head>
 <body>
@@ -96,8 +97,8 @@
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div>
-          <h1>Admin · Sitio (site.json + products.json)</h1>
-          <div class="muted">Editá y guardá <code>site.json</code> (contenido del sitio) y <code>products.json</code> (carta).</div>
+          <h1>Admin · Sitio</h1>
+          <div class="muted">Editá y guardá <code>site.json</code> (contenido) y <code>products.json</code> (carta).</div>
         </div>
         <div class="row">
           <a class="btn" href="/" target="_blank" rel="noopener">Abrir sitio</a>
@@ -116,6 +117,7 @@
             </label>
             <button class="btn primary" id="btnSave" type="button">Guardar cambios</button>
             <button class="btn" id="btnFormat" type="button">Formatear JSON</button>
+            <button class="btn" id="btnNormalize" type="button">Normalizar site</button>
             <button class="btn danger" id="btnResetToken" type="button">Cambiar token</button>
             <span class="small" id="hint"></span>
           </div>
@@ -137,11 +139,17 @@
             <div class="k">Validación rápida</div>
             <div id="status" class="status">Esperando…</div>
             <div class="small" style="margin-top:8px">
-              Reglas mínimas (según archivo):
+              <b>products.json</b>
               <ul>
                 <li><code>categories</code> es array</li>
                 <li>cada category tiene <code>category</code> y <code>items</code></li>
                 <li>cada item tiene <code>name</code>, <code>description</code>, <code>price</code></li>
+              </ul>
+              <div style="height:10px"></div>
+              <b>site.json</b>
+              <ul>
+                <li>Acepta <i>plano</i> o <i>anidado</i>.</li>
+                <li>Con “Normalizar” lo convierte al formato completo.</li>
               </ul>
             </div>
           </div>
@@ -157,9 +165,8 @@
     </div>
   </main>
 
-
 <script>
-const TOKEN_KEY = "voltri_admin_token_v1";
+const TOKEN_KEY = "admin_token_v1";
 
 const editor = document.getElementById("editor");
 const tokenInput = document.getElementById("token");
@@ -186,50 +193,146 @@ function validateProducts(obj){
   return "";
 }
 
+function safeStr(v){ return (typeof v === "string") ? v : ""; }
+
+function parseHoursRange(str){
+  const s = safeStr(str).replaceAll("—","-").replaceAll("–","-");
+  const m = s.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+  if(!m) return null;
+  return [m[1], m[2]];
+}
+
+function normalizeSite(raw){
+  const r = raw && typeof raw === "object" ? raw : {};
+  const isNested = !!r.contact || !!r.location || (r.hours && r.hours.schedule);
+
+  if(isNested){
+    // asegurar campos base para que el front no rompa
+    const out = JSON.parse(JSON.stringify(r));
+    out.businessName = safeStr(out.businessName) || "Mi negocio";
+    out.tagline = safeStr(out.tagline);
+    out.heroTitle = safeStr(out.heroTitle) || out.businessName;
+    out.heroSubtitle = safeStr(out.heroSubtitle);
+    out.contact = out.contact || {};
+    out.location = out.location || {};
+    out.hours = out.hours || { summary:"", lines:[], schedule:{} };
+    out.paymentsLine = safeStr(out.paymentsLine);
+    out.priceRangeLine = safeStr(out.priceRangeLine);
+    out.promo = out.promo || { enabled:false, label:"⭐ Promo:", text:"", ctaText:"Pedir por WhatsApp", ctaLink:"" };
+    out.featured = out.featured || { title:"⭐ Destacado del día", text:"" };
+    out.howToOrder = out.howToOrder || { title:"Cómo pedir", subtitle:"", steps:[], ctaText:"" };
+    out.faq = out.faq || { title:"Preguntas frecuentes", items:[] };
+    out.menu = out.menu || { note:"" };
+    out.footer = out.footer || { extra:"" };
+    out.gallery = out.gallery || { note:"" };
+    return out;
+  }
+
+  // PLANO -> completo (anidado)
+  const paymentsLine = Array.isArray(r.payments) ? r.payments.join(" · ") : safeStr(r.paymentsLine);
+  const hoursSummary =
+    (r.hours && typeof r.hours === "object")
+      ? [
+          r.hours.weekdays ? ("Lun–Vie " + r.hours.weekdays) : "",
+          r.hours.saturday ? ("Sáb " + r.hours.saturday) : "",
+          r.hours.sunday ? ("Dom " + r.hours.sunday) : ""
+        ].filter(Boolean).join(" / ")
+      : "";
+
+  const schedule = { "1":[], "2":[], "3":[], "4":[], "5":[], "6":[], "0":[] };
+  if(r.hours && typeof r.hours === "object"){
+    const wk = parseHoursRange(r.hours.weekdays);
+    const sa = parseHoursRange(r.hours.saturday);
+    const su = parseHoursRange(r.hours.sunday);
+    if(wk){ schedule["1"]=[wk]; schedule["2"]=[wk]; schedule["3"]=[wk]; schedule["4"]=[wk]; schedule["5"]=[wk]; }
+    if(sa){ schedule["6"]=[sa]; }
+    if(su){ schedule["0"]=[su]; }
+  }
+
+  const wa = safeStr(r.whatsappE164);
+  const name = safeStr(r.businessName) || "Mi negocio";
+
+  return {
+    businessName: name,
+    tagline: safeStr(r.about) || safeStr(r.businessShort) || "",
+    heroTitle: name,
+    heroSubtitle: safeStr(r.about),
+    badges: [safeStr(r.area)].filter(Boolean),
+    pills: [],
+    promo: {
+      enabled: !!(r.promo && typeof r.promo === "object" ? r.promo.enabled : false),
+      label: "⭐ Promo:",
+      text: safeStr(r.promo && r.promo.text),
+      ctaText: safeStr(r.promo && r.promo.ctaText) || "Pedir por WhatsApp",
+      ctaLink: safeStr(r.promo && (r.promo.ctaHref || r.promo.ctaLink)) || ""
+    },
+    contact: {
+      whatsappNumber: wa,
+      whatsappDefaultText: "Hola " + (safeStr(r.businessShort) || name) + " 😊",
+      phoneDisplay: wa ? ("+" + wa) : "",
+      instagramUrl: safeStr(r.instagramUrl)
+    },
+    location: {
+      addressLine: safeStr(r.addressFull) || safeStr(r.addressShort),
+      mapsLinkUrl: safeStr(r.mapsSearchUrl),
+      mapsEmbedUrl: safeStr(r.mapsEmbedUrl)
+    },
+    hours: {
+      summary: hoursSummary,
+      lines: [
+        r.hours && r.hours.weekdays ? { label:"Lun–Vie", value:safeStr(r.hours.weekdays) } : null,
+        r.hours && r.hours.saturday ? { label:"Sábado", value:safeStr(r.hours.saturday) } : null,
+        r.hours && r.hours.sunday ? { label:"Domingo", value:safeStr(r.hours.sunday) } : null
+      ].filter(Boolean),
+      schedule
+    },
+    paymentsLine: paymentsLine || "",
+    priceRangeLine: safeStr(r.priceRangeLine) || "—",
+    featured: { title:"⭐ Destacado del día", text:"Consultá opciones del día por WhatsApp" },
+    howToOrder: {
+      title:"Cómo pedir",
+      subtitle:"Elegí, escribinos por WhatsApp y coordinamos.",
+      steps:[
+        { title:"Elegí", text:"Mirá la carta y armá tu pedido." },
+        { title:"Escribinos", text:"Mandalo por WhatsApp con tu nombre/mesa." },
+        { title:"Confirmá", text:"Te confirmamos tiempos y opciones." }
+      ],
+      ctaText:"Hola! Quiero hacer un pedido 😊"
+    },
+    faq: {
+      title:"Preguntas frecuentes",
+      items:[
+        { q:"¿Hacen take away?", a:"Sí, podés pedir para llevar." },
+        { q:"¿Medios de pago?", a: paymentsLine || "Consultanos por WhatsApp." },
+        { q:"¿Horarios?", a: hoursSummary || "Consultanos por WhatsApp." }
+      ]
+    },
+    menu: { note:"Precios sujetos a cambios." },
+    footer: { extra: safeStr(r.area) ? ("Atendemos en " + safeStr(r.area)) : "" },
+    gallery: { note:"" }
+  };
+}
+
 function validateSite(obj){
   if(!obj || typeof obj !== "object") return "Body debe ser un objeto JSON";
-  const reqStr = (v, name) => (typeof v === "string" ? "" : ("Falta " + name));
-  let err = reqStr(obj.businessName, "businessName"); if(err) return err;
-  err = reqStr(obj.tagline, "tagline"); if(err) return err;
-  err = reqStr(obj.heroTitle, "heroTitle"); if(err) return err;
-  err = reqStr(obj.heroSubtitle, "heroSubtitle"); if(err) return err;
 
-  if(!obj.contact || typeof obj.contact !== "object") return "Falta contact";
-  err = reqStr(obj.contact.whatsappNumber, "contact.whatsappNumber"); if(err) return err;
-  err = reqStr(obj.contact.phoneDisplay, "contact.phoneDisplay"); if(err) return err;
-  err = reqStr(obj.contact.instagramUrl, "contact.instagramUrl"); if(err) return err;
+  // acepta plano o anidado: si es plano, lo normalizamos para validar “fuerte”
+  const normalized = normalizeSite(obj);
 
-  if(!obj.location || typeof obj.location !== "object") return "Falta location";
-  err = reqStr(obj.location.addressLine, "location.addressLine"); if(err) return err;
-  err = reqStr(obj.location.mapsEmbedUrl, "location.mapsEmbedUrl"); if(err) return err;
-  err = reqStr(obj.location.mapsLinkUrl, "location.mapsLinkUrl"); if(err) return err;
+  const reqStr = (v, name) => (typeof v === "string" && v.trim() ? "" : ("Falta " + name));
+  let err = reqStr(normalized.businessName, "businessName"); if(err) return err;
+  err = reqStr(normalized.heroTitle, "heroTitle"); if(err) return err;
+  err = reqStr(normalized.heroSubtitle, "heroSubtitle"); if(err) return err;
 
-  if(!obj.hours || typeof obj.hours !== "object") return "Falta hours";
-  err = reqStr(obj.hours.summary, "hours.summary"); if(err) return err;
-  if(!Array.isArray(obj.hours.lines)) return "Falta hours.lines[]";
-  if(!obj.hours.schedule || typeof obj.hours.schedule !== "object") return "Falta hours.schedule";
+  if(!normalized.contact || typeof normalized.contact !== "object") return "Falta contact";
+  err = reqStr(normalized.contact.whatsappNumber, "contact.whatsappNumber"); if(err) return err;
 
-  err = reqStr(obj.paymentsLine, "paymentsLine"); if(err) return err;
-  err = reqStr(obj.priceRangeLine, "priceRangeLine"); if(err) return err;
+  if(!normalized.location || typeof normalized.location !== "object") return "Falta location";
+  err = reqStr(normalized.location.addressLine, "location.addressLine"); if(err) return err;
 
-  if(!obj.promo || typeof obj.promo !== "object") return "Falta promo";
-  if(typeof obj.promo.enabled !== "boolean") return "promo.enabled debe ser boolean";
-
-  if(!obj.featured || typeof obj.featured !== "object") return "Falta featured";
-  err = reqStr(obj.featured.title, "featured.title"); if(err) return err;
-  err = reqStr(obj.featured.text, "featured.text"); if(err) return err;
-
-  if(!obj.howToOrder || typeof obj.howToOrder !== "object") return "Falta howToOrder";
-  if(!Array.isArray(obj.howToOrder.steps)) return "Falta howToOrder.steps[]";
-
-  if(!obj.faq || typeof obj.faq !== "object") return "Falta faq";
-  if(!Array.isArray(obj.faq.items)) return "Falta faq.items[]";
-
-  if(!obj.menu || typeof obj.menu !== "object") return "Falta menu";
-  err = reqStr(obj.menu.note, "menu.note"); if(err) return err;
-
-  if(!obj.footer || typeof obj.footer !== "object") return "Falta footer";
-  err = reqStr(obj.footer.extra, "footer.extra"); if(err) return err;
+  if(!normalized.hours || typeof normalized.hours !== "object") return "Falta hours";
+  if(!Array.isArray(normalized.hours.lines)) return "Falta hours.lines[]";
+  if(!normalized.hours.schedule || typeof normalized.hours.schedule !== "object") return "Falta hours.schedule";
 
   return "";
 }
@@ -273,6 +376,23 @@ function format(){
   }
 }
 
+function normalizeInEditor(){
+  try{
+    const obj = JSON.parse(editor.value);
+    if(which.value !== "site"){
+      setStatus(false, "Normalizar aplica solo a site.json");
+      return;
+    }
+    const n = normalizeSite(obj);
+    editor.value = JSON.stringify(n, null, 2);
+    const err = validateSite(n);
+    if(err) setStatus(false, "Normalizado, pero: " + err);
+    else setStatus(true, "OK · site normalizado");
+  }catch{
+    setStatus(false, "No se puede normalizar: JSON inválido");
+  }
+}
+
 async function save(){
   hint.textContent = "";
   const p = currentPaths();
@@ -280,7 +400,14 @@ async function save(){
   if(!token){ setStatus(false, "Pegá el token para guardar"); return; }
 
   try{
-    const obj = JSON.parse(editor.value);
+    let obj = JSON.parse(editor.value);
+
+    // si es site, lo guardamos normalizado (así el front siempre tiene todo)
+    if(which.value === "site"){
+      obj = normalizeSite(obj);
+      editor.value = JSON.stringify(obj, null, 2);
+    }
+
     const err = validateCurrent(obj);
     if(err){ setStatus(false, "No guardé: " + err); return; }
 
@@ -311,6 +438,7 @@ async function save(){
 document.getElementById("btnReload").addEventListener("click", load);
 document.getElementById("btnFormat").addEventListener("click", format);
 document.getElementById("btnSave").addEventListener("click", save);
+document.getElementById("btnNormalize").addEventListener("click", normalizeInEditor);
 
 which.addEventListener("change", load);
 
