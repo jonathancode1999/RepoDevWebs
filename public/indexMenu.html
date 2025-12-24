@@ -243,7 +243,7 @@ h1{margin:6px 0 2px;font-size:28px;letter-spacing:-.02em}
           <div class="muted">Elegí tu pedido y envialo o mostralo</div>
         </div>
       </div>
-      <a class="btn primary" href="https://wa.me/"+WHATSAPP_NUMBER target="_blank" rel="noopener">WhatsApp</a>
+      <a class="btn primary" id="waTop" href="#" target="_blank" rel="noopener">WhatsApp</a>
     </div>
     <div id="menu"></div>
   </div>
@@ -256,9 +256,9 @@ h1{margin:6px 0 2px;font-size:28px;letter-spacing:-.02em}
       <button class="btn" type="button" onclick="showOrder()">Mostrar al mozo</button>
     </div>
     <div style="margin-top:16px">
-      <div class="kv"><div class="k">Dirección</div><div class="v"><span id="siteAddress">San Martín 780, Quilmes</span></div></div>
-      <div class="kv"><div class="k">Horarios</div><div class="v"><span id="siteHours">L–V 8–13 / 15–19<br>Sáb 8–13</span></div></div>
-      <div class="kv"><div class="k">Pagos</div><div class="v"><span id="sitePayments">Efectivo · MP · Débito · Crédito</span></div></div>
+      <div class="kv"><div class="k">Dirección</div><div class="v" id="siteAddress">—</div></div>
+      <div class="kv"><div class="k">Horarios</div><div class="v" id="siteHours">—</div></div>
+      <div class="kv"><div class="k">Pagos</div><div class="v" id="sitePayments">—</div></div>
     </div>
   </div>
 </div>
@@ -291,43 +291,37 @@ h1{margin:6px 0 2px;font-size:28px;letter-spacing:-.02em}
 <script>
 
 /* ===== APP ===== */
-let WHATSAPP_NUMBER="5491125052219";
-let WHATSAPP_DEFAULT_MESSAGE="Hola Voltri! Quería hacer un pedido 😊";
-
-let MENU=[];
-let cart={};
-
-
 
 async function loadSite(){
   try{
-    const res = await fetch("site.json", { cache: "no-store" });
+    const res = await fetch("/site.json", { cache: "no-store" });
     if(!res.ok) throw new Error("site.json not found");
-    const site = await res.json();
+    SITE = await res.json();
+    WHATSAPP_NUMBER = (SITE && SITE.contact && SITE.contact.whatsappNumber) ? SITE.contact.whatsappNumber : WHATSAPP_NUMBER;
 
-    if(site?.contact?.whatsappNumber) WHATSAPP_NUMBER = String(site.contact.whatsappNumber);
-    if(site?.promo?.waMessage) WHATSAPP_DEFAULT_MESSAGE = String(site.promo.waMessage);
-
-    const waUrl = "https://wa.me/"+encodeURIComponent(WHATSAPP_NUMBER)+"?text="+encodeURIComponent(WHATSAPP_DEFAULT_MESSAGE);
-    const waTop = document.getElementById("waTop");
-    if(waTop) waTop.href = waUrl;
-
-    const addr = document.getElementById("siteAddress");
-    if(addr && site?.location?.addressText) addr.textContent = site.location.addressText;
-
-    const hrs = document.getElementById("siteHours");
-    if(hrs && site?.hours?.summary) hrs.innerHTML = String(site.hours.summary).replaceAll(" · ", "<br>");
-
-    const pay = document.getElementById("sitePayments");
-    if(pay && site?.payments) pay.textContent = site.payments;
-  }catch(e){
-    // si falla, dejamos defaults
-    const waTop = document.getElementById("waTop");
-    if(waTop){
-      waTop.href = "https://wa.me/"+WHATSAPP_NUMBER+"?text="+encodeURIComponent(WHATSAPP_DEFAULT_MESSAGE);
+    // Top WA button
+    const waBtn = document.getElementById("waTop");
+    if(waBtn && WHATSAPP_NUMBER){
+      waBtn.href = "https://wa.me/" + WHATSAPP_NUMBER;
     }
+
+    // Side info
+    const addr = document.getElementById("siteAddress");
+    const hrs = document.getElementById("siteHours");
+    const pay = document.getElementById("sitePayments");
+    if(addr) addr.textContent = (SITE.location && SITE.location.addressLine) ? SITE.location.addressLine : "";
+    if(hrs) hrs.innerHTML = (SITE.hours && SITE.hours.summary) ? SITE.hours.summary.replaceAll(" / ","<br>").replaceAll("·","·") : "";
+    if(pay) pay.textContent = SITE.paymentsLine || "";
+  }catch(e){
+    // ignore
   }
 }
+
+let WHATSAPP_NUMBER="";
+let SITE=null;
+
+let MENU=[];
+let cart={};
 
 function slugify(str){
   return String(str || "")
@@ -483,7 +477,8 @@ function showOrder(){
 function closeModal(){ document.getElementById("modal").style.display="none";}
 async function copyOrder(){ try{ await navigator.clipboard.writeText(buildText()); alert("Pedido copiado ✅"); }catch{ alert("No se pudo copiar."); } }
 
-(async function init(){ await loadSite();
+(async function init(){
+  await loadSite();
   await loadMenuFromJson(); const loaded = tryLoadCartFromUrl(); renderMenu(); renderCart(); if(loaded){ showOrder(); } })();
 </script>
 </body>

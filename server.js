@@ -34,6 +34,7 @@ async function getProductsFromDb() {
   const r = await pool.query(`SELECT value FROM kv_store WHERE key='products' LIMIT 1;`);
   return r.rows?.[0]?.value ?? null;
 }
+
 async function upsertProductsToDb(obj) {
   await pool.query(
     `INSERT INTO kv_store (key, value) VALUES ('products', $1)
@@ -42,10 +43,12 @@ async function upsertProductsToDb(obj) {
   );
 }
 
+
 async function getSiteFromDb() {
   const r = await pool.query(`SELECT value FROM kv_store WHERE key='site' LIMIT 1;`);
   return r.rows?.[0]?.value ?? null;
 }
+
 async function upsertSiteToDb(obj) {
   await pool.query(
     `INSERT INTO kv_store (key, value) VALUES ('site', $1)
@@ -70,58 +73,56 @@ function validateProductsSchema(obj) {
   return "";
 }
 
+
 function validateSiteSchema(obj) {
   if (!obj || typeof obj !== "object") return "Body must be a JSON object";
-  if (typeof obj.businessName !== "string" || !obj.businessName.trim()) return "Missing businessName";
-  if (typeof obj.heroTitle !== "string") return "Missing heroTitle";
-  if (typeof obj.heroSubtitle !== "string") return "Missing heroSubtitle";
+  if (typeof obj.businessName !== "string") return "Invalid schema: businessName";
+  if (typeof obj.tagline !== "string") return "Invalid schema: tagline";
+  if (typeof obj.heroTitle !== "string") return "Invalid schema: heroTitle";
+  if (typeof obj.heroSubtitle !== "string") return "Invalid schema: heroSubtitle";
 
-  if (!obj.contact || typeof obj.contact !== "object") return "Missing contact";
-  if (typeof obj.contact.whatsappNumber !== "string" || !obj.contact.whatsappNumber.trim()) return "Missing contact.whatsappNumber";
-  if (typeof obj.contact.phoneDisplay !== "string") return "Missing contact.phoneDisplay";
-  if (typeof obj.contact.instagramUrl !== "string") return "Missing contact.instagramUrl";
+  if (!obj.contact || typeof obj.contact !== "object") return "Invalid schema: contact";
+  if (typeof obj.contact.whatsappNumber !== "string") return "Invalid schema: contact.whatsappNumber";
+  if (typeof obj.contact.phoneDisplay !== "string") return "Invalid schema: contact.phoneDisplay";
+  if (typeof obj.contact.instagramUrl !== "string") return "Invalid schema: contact.instagramUrl";
 
-  if (!obj.location || typeof obj.location !== "object") return "Missing location";
-  if (typeof obj.location.addressText !== "string") return "Missing location.addressText";
-  if (typeof obj.location.mapsQuery !== "string") return "Missing location.mapsQuery";
+  if (!obj.location || typeof obj.location !== "object") return "Invalid schema: location";
+  if (typeof obj.location.addressLine !== "string") return "Invalid schema: location.addressLine";
+  if (typeof obj.location.mapsEmbedUrl !== "string") return "Invalid schema: location.mapsEmbedUrl";
+  if (typeof obj.location.mapsLinkUrl !== "string") return "Invalid schema: location.mapsLinkUrl";
 
-  if (!obj.hours || typeof obj.hours !== "object") return "Missing hours";
-  if (typeof obj.hours.timezone !== "string") return "Missing hours.timezone";
-  if (typeof obj.hours.summary !== "string") return "Missing hours.summary";
-  if (!obj.hours.schedule || typeof obj.hours.schedule !== "object") return "Missing hours.schedule";
-  // minimal: allow keys 0-6 as arrays (can be empty)
-  for (const k of ["0","1","2","3","4","5","6"]) {
-    const v = obj.hours.schedule[k];
-    if (!Array.isArray(v)) return `Invalid hours.schedule.${k}: must be array`;
-    for (const rng of v) {
-      if (!Array.isArray(rng) || rng.length !== 2) return `Invalid hours.schedule.${k}: each range is ["HH:mm","HH:mm"]`;
-    }
-  }
+  if (!obj.hours || typeof obj.hours !== "object") return "Invalid schema: hours";
+  if (typeof obj.hours.summary !== "string") return "Invalid schema: hours.summary";
+  if (!Array.isArray(obj.hours.lines)) return "Invalid schema: hours.lines[]";
+  if (!obj.hours.schedule || typeof obj.hours.schedule !== "object") return "Invalid schema: hours.schedule";
 
-  if (typeof obj.payments !== "string") return "Missing payments";
-  if (!Array.isArray(obj.highlights)) return "Missing highlights[]";
-  if (!Array.isArray(obj.howToOrder)) return "Missing howToOrder[]";
-  if (!Array.isArray(obj.faq)) return "Missing faq[]";
-  if (!Array.isArray(obj.reviews)) return "Missing reviews[]";
-  if (!obj.seo || typeof obj.seo !== "object") return "Missing seo";
-  if (typeof obj.seo.title !== "string") return "Missing seo.title";
-  if (typeof obj.seo.description !== "string") return "Missing seo.description";
-  if (typeof obj.seo.themeColor !== "string") return "Missing seo.themeColor";
+  if (typeof obj.paymentsLine !== "string") return "Invalid schema: paymentsLine";
+  if (typeof obj.priceRangeLine !== "string") return "Invalid schema: priceRangeLine";
 
-  // promo is optional but if present, must be object
-  if (obj.promo != null) {
-    if (typeof obj.promo !== "object") return "Invalid promo";
-    if (typeof obj.promo.enabled !== "boolean") return "Missing promo.enabled";
-    if (typeof obj.promo.label !== "string") return "Missing promo.label";
-    if (typeof obj.promo.text !== "string") return "Missing promo.text";
-    if (typeof obj.promo.buttonText !== "string") return "Missing promo.buttonText";
-    if (typeof obj.promo.waMessage !== "string") return "Missing promo.waMessage";
-  }
+  if (!obj.promo || typeof obj.promo !== "object") return "Invalid schema: promo";
+  if (typeof obj.promo.enabled !== "boolean") return "Invalid schema: promo.enabled (boolean)";
+
+  if (!obj.featured || typeof obj.featured !== "object") return "Invalid schema: featured";
+  if (typeof obj.featured.title !== "string") return "Invalid schema: featured.title";
+  if (typeof obj.featured.text !== "string") return "Invalid schema: featured.text";
+
+  if (!obj.menu || typeof obj.menu !== "object") return "Invalid schema: menu";
+  if (typeof obj.menu.note !== "string") return "Invalid schema: menu.note";
+
+  if (!obj.howToOrder || typeof obj.howToOrder !== "object") return "Invalid schema: howToOrder";
+  if (!Array.isArray(obj.howToOrder.steps)) return "Invalid schema: howToOrder.steps[]";
+
+  if (!obj.faq || typeof obj.faq !== "object") return "Invalid schema: faq";
+  if (!Array.isArray(obj.faq.items)) return "Invalid schema: faq.items[]";
+
+  if (!obj.footer || typeof obj.footer !== "object") return "Invalid schema: footer";
+  if (typeof obj.footer.extra !== "string") return "Invalid schema: footer.extra";
 
   return "";
 }
 
-// Seed from local files (first deploy)
+// Seed from local file (first deploy)
+
 async function seedIfEmpty() {
   // products
   const currentProducts = await getProductsFromDb();
@@ -175,14 +176,15 @@ app.get("/products.json", async (_req, res) => {
   }
 });
 
+
 // API: get site.json
 app.get("/site.json", async (_req, res) => {
   try {
     const obj = await getSiteFromDb();
-    res.setHeader("content-type", "application/json; charset=utf-8");
-    res.setHeader("cache-control", "no-store");
-    res.status(200).send(JSON.stringify(obj ?? {}, null, 2));
-  } catch (_e) {
+    if (!obj) return res.status(404).send("Not found");
+    res.json(obj);
+  } catch (e) {
+    console.error(e);
     res.status(500).send("DB error");
   }
 });
@@ -204,22 +206,21 @@ app.put("/api/products", async (req, res) => {
   }
 });
 
-// API: update site
-app.put("/api/site", async (req, res) => {
+
+// API: update site (protected)
+app.put("/api/site", requireAdmin, async (req, res) => {
   try {
-    if (!ADMIN_TOKEN) return res.status(500).send("Missing ADMIN_TOKEN env var");
-    const auth = req.headers.authorization || "";
-    if (auth !== `Bearer ${ADMIN_TOKEN}`) return res.status(401).send("Unauthorized");
-
-    const err = validateSiteSchema(req.body);
+    const obj = req.body;
+    const err = validateSiteSchema(obj);
     if (err) return res.status(400).send(err);
-
-    await upsertSiteToDb(req.body);
-    res.status(200).send("OK");
-  } catch (_e) {
+    await upsertSiteToDb(obj);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
     res.status(500).send("DB error");
   }
 });
+
 
 // Convenience route
 app.get("/admin", (_req, res) => {

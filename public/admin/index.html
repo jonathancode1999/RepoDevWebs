@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Voltri · Admin</title>
+  <title>Voltri · Admin (Sitio)</title>
   <meta name="theme-color" content="#0f0f0f" />
   <style>
     :root{
       --bg:#0f0f0f; --text:#f2f2f2; --muted:#b8b8b8;
       --accent:#d7b07a; --ok:#42d37a; --bad:#ff6b6b;
-      --shadow: 0 10px 30px rgba(0,0,0,35); --r:18px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35); --r:18px;
     }
     *{box-sizing:border-box}
     body{
@@ -33,18 +33,6 @@
     h1{margin:0 0 6px;font-size:28px;letter-spacing:-.02em}
     .muted{color:var(--muted)}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .tab{
-      padding:8px 12px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.06);
-      cursor:pointer;font-weight:850;font-size:13px;
-    }
-    .tab.active{
-      border-color: rgba(215,176,122,.35);
-      background: rgba(215,176,122,.14);
-      color:#f0d2a5;
-    }
     .btn{
       display:inline-flex;align-items:center;justify-content:center;
       gap:10px;padding:10px 14px;border-radius:14px;
@@ -62,7 +50,7 @@
     .btn.danger{border-color:rgba(255,107,107,.25);background:rgba(255,107,107,.10)}
     textarea{
       width:100%;
-      min-height: 520px;
+      min-height: 460px;
       resize: vertical;
       border-radius: 16px;
       padding: 14px;
@@ -71,7 +59,7 @@
       color: var(--text);
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
       font-size: 13px;
-      line-height:1.35;
+      line-height: 1.35;
       outline: none;
     }
     textarea:focus{border-color:rgba(215,176,122,.35)}
@@ -101,7 +89,6 @@
     input:focus{border-color:rgba(215,176,122,.35)}
     .small{font-size:12px;color:var(--muted)}
     code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.08)}
-    ul{margin:8px 0 0;padding-left:18px}
   </style>
 </head>
 <body>
@@ -109,24 +96,24 @@
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div>
-          <h1>Admin · Sitio</h1>
-          <div class="muted">Editá <code>site.json</code> (info del sitio) y <code>products.json</code> (carta).</div>
+          <h1>Admin · Sitio (site.json + products.json)</h1>
+          <div class="muted">Editá y guardá <code>site.json</code> (contenido del sitio) y <code>products.json</code> (carta).</div>
         </div>
         <div class="row">
           <a class="btn" href="/" target="_blank" rel="noopener">Abrir sitio</a>
-          <a class="btn" href="/indexMenu.html" target="_blank" rel="noopener">Abrir carta rápida</a>
           <button class="btn" id="btnReload" type="button">Recargar</button>
         </div>
-      </div>
-
-      <div class="tabs">
-        <button class="tab active" id="tabSite" type="button">site.json</button>
-        <button class="tab" id="tabProducts" type="button">products.json</button>
       </div>
 
       <div class="grid">
         <div>
           <div class="row" style="margin:10px 0">
+            <label class="small" style="display:flex;align-items:center;gap:8px"><span>Editar</span>
+              <select id="which" class="btn" style="padding:8px 10px;border-radius:12px">
+                <option value="site">site.json (sitio)</option>
+                <option value="products">products.json (carta)</option>
+              </select>
+            </label>
             <button class="btn primary" id="btnSave" type="button">Guardar cambios</button>
             <button class="btn" id="btnFormat" type="button">Formatear JSON</button>
             <button class="btn danger" id="btnResetToken" type="button">Cambiar token</button>
@@ -149,7 +136,14 @@
           <div class="kv">
             <div class="k">Validación rápida</div>
             <div id="status" class="status">Esperando…</div>
-            <div class="small" style="margin-top:8px" id="rulesBox"></div>
+            <div class="small" style="margin-top:8px">
+              Reglas mínimas (según archivo):
+              <ul>
+                <li><code>categories</code> es array</li>
+                <li>cada category tiene <code>category</code> y <code>items</code></li>
+                <li>cada item tiene <code>name</code>, <code>description</code>, <code>price</code></li>
+              </ul>
+            </div>
           </div>
 
           <div class="kv">
@@ -163,15 +157,15 @@
     </div>
   </main>
 
+
 <script>
 const TOKEN_KEY = "voltri_admin_token_v1";
+
 const editor = document.getElementById("editor");
 const tokenInput = document.getElementById("token");
 const statusBox = document.getElementById("status");
 const hint = document.getElementById("hint");
-const rulesBox = document.getElementById("rulesBox");
-
-let mode = "site"; // "site" | "products"
+const which = document.getElementById("which");
 
 function setStatus(ok, msg){
   statusBox.className = "status " + (ok ? "ok" : "bad");
@@ -193,76 +187,75 @@ function validateProducts(obj){
 }
 
 function validateSite(obj){
-  if(!obj || typeof obj !== "object") return "Debe ser un objeto JSON";
-  if(typeof obj.businessName !== "string" || !obj.businessName.trim()) return "Falta businessName";
-  if(typeof obj.heroTitle !== "string") return "Falta heroTitle";
-  if(typeof obj.heroSubtitle !== "string") return "Falta heroSubtitle";
+  if(!obj || typeof obj !== "object") return "Body debe ser un objeto JSON";
+  const reqStr = (v, name) => (typeof v === "string" ? "" : ("Falta " + name));
+  let err = reqStr(obj.businessName, "businessName"); if(err) return err;
+  err = reqStr(obj.tagline, "tagline"); if(err) return err;
+  err = reqStr(obj.heroTitle, "heroTitle"); if(err) return err;
+  err = reqStr(obj.heroSubtitle, "heroSubtitle"); if(err) return err;
 
   if(!obj.contact || typeof obj.contact !== "object") return "Falta contact";
-  if(typeof obj.contact.whatsappNumber !== "string" || !obj.contact.whatsappNumber.trim()) return "Falta contact.whatsappNumber";
-  if(typeof obj.contact.phoneDisplay !== "string") return "Falta contact.phoneDisplay";
-  if(typeof obj.contact.instagramUrl !== "string") return "Falta contact.instagramUrl";
+  err = reqStr(obj.contact.whatsappNumber, "contact.whatsappNumber"); if(err) return err;
+  err = reqStr(obj.contact.phoneDisplay, "contact.phoneDisplay"); if(err) return err;
+  err = reqStr(obj.contact.instagramUrl, "contact.instagramUrl"); if(err) return err;
 
   if(!obj.location || typeof obj.location !== "object") return "Falta location";
-  if(typeof obj.location.addressText !== "string") return "Falta location.addressText";
-  if(typeof obj.location.mapsQuery !== "string") return "Falta location.mapsQuery";
+  err = reqStr(obj.location.addressLine, "location.addressLine"); if(err) return err;
+  err = reqStr(obj.location.mapsEmbedUrl, "location.mapsEmbedUrl"); if(err) return err;
+  err = reqStr(obj.location.mapsLinkUrl, "location.mapsLinkUrl"); if(err) return err;
 
   if(!obj.hours || typeof obj.hours !== "object") return "Falta hours";
-  if(typeof obj.hours.timezone !== "string") return "Falta hours.timezone";
-  if(typeof obj.hours.summary !== "string") return "Falta hours.summary";
+  err = reqStr(obj.hours.summary, "hours.summary"); if(err) return err;
+  if(!Array.isArray(obj.hours.lines)) return "Falta hours.lines[]";
   if(!obj.hours.schedule || typeof obj.hours.schedule !== "object") return "Falta hours.schedule";
 
-  for(const k of ["0","1","2","3","4","5","6"]){
-    const v = obj.hours.schedule[k];
-    if(!Array.isArray(v)) return "hours.schedule."+k+" debe ser array";
-    for(const rng of v){
-      if(!Array.isArray(rng) || rng.length !== 2) return "hours.schedule."+k+" debe ser [[HH:mm,HH:mm]]";
-    }
-  }
+  err = reqStr(obj.paymentsLine, "paymentsLine"); if(err) return err;
+  err = reqStr(obj.priceRangeLine, "priceRangeLine"); if(err) return err;
 
-  if(typeof obj.payments !== "string") return "Falta payments";
-  if(!Array.isArray(obj.highlights)) return "Falta highlights[]";
-  if(!Array.isArray(obj.howToOrder)) return "Falta howToOrder[]";
-  if(!Array.isArray(obj.faq)) return "Falta faq[]";
-  if(!Array.isArray(obj.reviews)) return "Falta reviews[]";
-  if(!obj.seo || typeof obj.seo !== "object") return "Falta seo";
-  if(typeof obj.seo.title !== "string") return "Falta seo.title";
-  if(typeof obj.seo.description !== "string") return "Falta seo.description";
-  if(typeof obj.seo.themeColor !== "string") return "Falta seo.themeColor";
-  if(obj.promo != null){
-    if(typeof obj.promo !== "object") return "promo inválido";
-    if(typeof obj.promo.enabled !== "boolean") return "Falta promo.enabled";
-    if(typeof obj.promo.label !== "string") return "Falta promo.label";
-    if(typeof obj.promo.text !== "string") return "Falta promo.text";
-    if(typeof obj.promo.buttonText !== "string") return "Falta promo.buttonText";
-    if(typeof obj.promo.waMessage !== "string") return "Falta promo.waMessage";
-  }
+  if(!obj.promo || typeof obj.promo !== "object") return "Falta promo";
+  if(typeof obj.promo.enabled !== "boolean") return "promo.enabled debe ser boolean";
+
+  if(!obj.featured || typeof obj.featured !== "object") return "Falta featured";
+  err = reqStr(obj.featured.title, "featured.title"); if(err) return err;
+  err = reqStr(obj.featured.text, "featured.text"); if(err) return err;
+
+  if(!obj.howToOrder || typeof obj.howToOrder !== "object") return "Falta howToOrder";
+  if(!Array.isArray(obj.howToOrder.steps)) return "Falta howToOrder.steps[]";
+
+  if(!obj.faq || typeof obj.faq !== "object") return "Falta faq";
+  if(!Array.isArray(obj.faq.items)) return "Falta faq.items[]";
+
+  if(!obj.menu || typeof obj.menu !== "object") return "Falta menu";
+  err = reqStr(obj.menu.note, "menu.note"); if(err) return err;
+
+  if(!obj.footer || typeof obj.footer !== "object") return "Falta footer";
+  err = reqStr(obj.footer.extra, "footer.extra"); if(err) return err;
+
   return "";
 }
 
-function setMode(next){
-  mode = next;
-  document.getElementById("tabSite").classList.toggle("active", mode==="site");
-  document.getElementById("tabProducts").classList.toggle("active", mode==="products");
-  rulesBox.innerHTML = mode==="site"
-    ? "<ul><li><code>businessName</code>, <code>contact</code>, <code>location</code>, <code>hours</code>, <code>payments</code></li><li><code>hours.schedule</code> debe tener claves 0-6</li></ul>"
-    : "<ul><li><code>categories</code> es array</li><li>cada category tiene <code>category</code> y <code>items</code></li><li>cada item tiene <code>name</code>, <code>description</code>, <code>price</code></li></ul>";
-  load();
+function validateCurrent(obj){
+  return (which.value === "site") ? validateSite(obj) : validateProducts(obj);
+}
+
+function currentPaths(){
+  if(which.value === "site") return { get: "/site.json", put: "/api/site", label: "site.json" };
+  return { get: "/products.json", put: "/api/products", label: "products.json" };
 }
 
 async function load(){
   hint.textContent = "";
+  const p = currentPaths();
   setStatus(true, "Cargando…");
-  const url = mode==="site" ? "/site.json" : "/products.json";
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(p.get, { cache: "no-store" });
   const txt = await res.text();
   editor.value = txt;
 
   try{
     const obj = JSON.parse(txt);
-    const err = mode==="site" ? validateSite(obj) : validateProducts(obj);
+    const err = validateCurrent(obj);
     if(err) setStatus(false, "JSON válido, pero: " + err);
-    else setStatus(true, "OK · JSON válido");
+    else setStatus(true, "OK · " + p.label);
   }catch{
     setStatus(false, "JSON inválido (no parsea)");
   }
@@ -272,7 +265,7 @@ function format(){
   try{
     const obj = JSON.parse(editor.value);
     editor.value = JSON.stringify(obj, null, 2);
-    const err = mode==="site" ? validateSite(obj) : validateProducts(obj);
+    const err = validateCurrent(obj);
     if(err) setStatus(false, "JSON válido, pero: " + err);
     else setStatus(true, "OK · Formateado");
   }catch{
@@ -282,20 +275,23 @@ function format(){
 
 async function save(){
   hint.textContent = "";
+  const p = currentPaths();
   const token = tokenInput.value.trim() || localStorage.getItem(TOKEN_KEY) || "";
   if(!token){ setStatus(false, "Pegá el token para guardar"); return; }
 
   try{
     const obj = JSON.parse(editor.value);
-    const err = mode==="site" ? validateSite(obj) : validateProducts(obj);
+    const err = validateCurrent(obj);
     if(err){ setStatus(false, "No guardé: " + err); return; }
 
     localStorage.setItem(TOKEN_KEY, token);
 
-    const url = mode==="site" ? "/api/site" : "/api/products";
-    const res = await fetch(url, {
+    const res = await fetch(p.put, {
       method: "PUT",
-      headers: { "content-type":"application/json", "authorization":"Bearer " + token },
+      headers: {
+        "content-type": "application/json",
+        "authorization": "Bearer " + token
+      },
       body: JSON.stringify(obj)
     });
 
@@ -305,9 +301,9 @@ async function save(){
       return;
     }
 
-    setStatus(true, "Guardado ✅");
+    setStatus(true, "Guardado ✅ (" + p.label + ")");
     hint.textContent = "Listo. Refrescá el sitio para ver cambios.";
-  }catch(_e){
+  }catch{
     setStatus(false, "No guardé: JSON inválido");
   }
 }
@@ -316,19 +312,15 @@ document.getElementById("btnReload").addEventListener("click", load);
 document.getElementById("btnFormat").addEventListener("click", format);
 document.getElementById("btnSave").addEventListener("click", save);
 
+which.addEventListener("change", load);
+
 document.getElementById("btnResetToken").addEventListener("click", () => {
   localStorage.removeItem(TOKEN_KEY);
   tokenInput.value = "";
-  setStatus(true, "Token borrado del navegador");
+  setStatus(true, "Token borrado (local)");
 });
 
-document.getElementById("tabSite").addEventListener("click", () => setMode("site"));
-document.getElementById("tabProducts").addEventListener("click", () => setMode("products"));
-
-tokenInput.value = localStorage.getItem(TOKEN_KEY) || "";
-
-// Atajos
-document.addEventListener("keydown", (e) => {
+window.addEventListener("keydown", (e) => {
   if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s"){
     e.preventDefault(); save();
   }
@@ -337,7 +329,12 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-setMode("site");
+(function init(){
+  const saved = localStorage.getItem(TOKEN_KEY) || "";
+  if(saved) tokenInput.value = saved;
+  load();
+})();
 </script>
+
 </body>
 </html>

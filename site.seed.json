@@ -1,27 +1,62 @@
 {
   "businessName": "Voltri",
-  "tagline": "☕ Café de especialidad · Quilmes",
-  "heroTitle": "Café de especialidad en Quilmes",
-  "heroSubtitle": "Desayunos, meriendas y algo rico para acompañar.",
+  "tagline": "Café de especialidad · Quilmes",
+  "heroTitle": "Voltri Café de Especialidad",
+  "heroSubtitle": "Un lugar para cortar el día con buen café, algo rico y atención cercana.",
+  "badges": [
+    "☕ Café de especialidad · Salón y take away"
+  ],
+  "pills": [
+    {
+      "label": "Consumo en el lugar",
+      "ok": true
+    },
+    {
+      "label": "Para llevar",
+      "ok": true
+    },
+    {
+      "label": "Pet friendly",
+      "ok": false
+    },
+    {
+      "label": "Amigable con LGBTQ+",
+      "ok": false
+    }
+  ],
   "promo": {
     "enabled": true,
-    "label": "Promo",
-    "text": "2×1 en café filtrado de 17 a 19 hs (consultá días).",
-    "buttonText": "Escribinos",
-    "waMessage": "Hola Voltri! Quería consultar por la promo 😊"
+    "label": "⭐ Promo:",
+    "text": "2x1 en Espresso hasta las 11:00",
+    "ctaText": "Pedir por WhatsApp",
+    "ctaLink": "https://wa.me/5491125052219?text=Hola%20Voltri%2C%20%C2%BFme%20reserv%C3%A1s%20la%20promo%202x1%20en%20espresso%3F"
   },
   "contact": {
     "whatsappNumber": "5491125052219",
+    "whatsappDefaultText": "Hola Voltri, tengo una consulta 😊",
     "phoneDisplay": "11 2505-2219",
     "instagramUrl": "https://www.instagram.com/voltricafe/?hl=es-la"
   },
   "location": {
-    "addressText": "San Martín 780, Quilmes",
-    "mapsQuery": "San Martín 780, Quilmes, Buenos Aires"
+    "addressLine": "San Martín 780, Quilmes (B1878)",
+    "mapsQuery": "San Martín 780, Quilmes, Buenos Aires",
+    "mapsEmbedUrl": "https://www.google.com/maps?q=San%20Mart%C3%ADn%20780%20Quilmes%20Buenos%20Aires&output=embed",
+    "mapsLinkUrl": "https://www.google.com/maps/search/?api=1&query=San%20Mart%C3%ADn%20780%2C%20Quilmes%2C%20Buenos%20Aires"
   },
+  "paymentsLine": "Efectivo · Mercado Pago · Débito · Crédito",
+  "priceRangeLine": "$5.000–$10.000 por persona",
   "hours": {
-    "timezone": "America/Argentina/Buenos_Aires",
-    "summary": "L–V 8–13 / 15–19 · Sáb 8–13",
+    "summary": "Lun a Vie 08–13 / 15–19 · Sáb 08–13",
+    "lines": [
+      {
+        "label": "Lunes a Viernes",
+        "value": "08:00 a 13:00 · 15:00 a 19:00"
+      },
+      {
+        "label": "Sábados",
+        "value": "08:00 a 13:00"
+      }
+    ],
     "schedule": {
       "1": [
         [
@@ -82,63 +117,60 @@
       "0": []
     }
   },
-  "payments": "Efectivo · Mercado Pago · Débito · Crédito",
-  "highlights": [
-    "Pet friendly",
-    "Opciones sin TACC (consultar)",
-    "Café de especialidad"
-  ],
-  "howToOrder": [
-    {
-      "title": "Elegí",
-      "text": "Armá tu pedido desde la carta."
-    },
-    {
-      "title": "Enviá",
-      "text": "Mandalo por WhatsApp o mostralo al mozo."
-    },
-    {
-      "title": "Disfrutá",
-      "text": "Listo. Nosotros nos encargamos del resto."
-    }
-  ],
-  "faq": [
-    {
-      "q": "¿Hacen take away?",
-      "a": "Sí, podés pedir para llevar."
-    },
-    {
-      "q": "¿Aceptan Mercado Pago?",
-      "a": "Sí, también débito y crédito."
-    },
-    {
-      "q": "¿Se puede reservar?",
-      "a": "Consultanos por WhatsApp para ver disponibilidad."
-    }
-  ],
-  "reviews": [
-    {
-      "name": "Sofi",
-      "stars": 5,
-      "meta": "Google Reviews",
-      "text": "Café riquísimo y atención excelente. Volvemos siempre."
-    },
-    {
-      "name": "Lucas",
-      "stars": 5,
-      "meta": "Google Reviews",
-      "text": "Lugar ideal para desayunar y laburar tranqui."
-    },
-    {
-      "name": "Maru",
-      "stars": 5,
-      "meta": "Google Reviews",
-      "text": "El budín de banana es una locura. Recomendadísimo."
-    }
-  ],
-  "seo": {
-    "title": "Voltri · Café de especialidad en Quilmes",
-    "description": "Café de especialidad, pastelería y promos. San Martín 780, Quilmes.",
-    "themeColor": "#0f0f0f"
+  "featured": {
+    "title": "⭐ Destacado del día",
+    "text": "Café de galletita + budín casero · consultá disponibilidad"
+  },
+  "menu": {
+    "note": "Precios orientativos. Consultar disponibilidad del día.",
+    "columns": 3
+  },
+  "howToOrder": {
+    "title": "Cómo pedir",
+    "subtitle": "Tres pasos simples para pedir rápido.",
+    "steps": [
+      {
+        "title": "Elegí",
+        "text": "Mirás la carta y elegís tu café, dulce o especial del día."
+      },
+      {
+        "title": "Escribinos",
+        "text": "Mandás un WhatsApp con tu pedido y te confirmamos disponibilidad."
+      },
+      {
+        "title": "Retirá o disfrutá",
+        "text": "Pasás por el local para take away o te quedás a disfrutar en el salón."
+      }
+    ],
+    "ctaText": "Pedir por WhatsApp"
+  },
+  "faq": {
+    "title": "Preguntas frecuentes",
+    "items": [
+      {
+        "q": "🐶 ¿Es pet friendly?",
+        "a": "Sí, podés venir con tu mascota."
+      },
+      {
+        "q": "🪑 ¿Hay lugar para sentarse?",
+        "a": "Sí, contamos con mesas y barra para consumir en el lugar."
+      },
+      {
+        "q": "💳 ¿Qué medios de pago aceptan?",
+        "a": "Efectivo, Mercado Pago, débito y crédito."
+      }
+    ]
+  },
+  "gallery": {
+    "useImagesJson": true,
+    "note": "Fotos reales del local."
+  },
+  "reviews": {
+    "enabled": true,
+    "title": "Reseñas reales",
+    "items": []
+  },
+  "footer": {
+    "extra": "San Martín 780 · WhatsApp: 11 2505-2219"
   }
 }
