@@ -3,41 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-
-  <!-- Micro SEO local -->
-  <title>Voltri Café de Especialidad en Quilmes Centro | Take Away & Pet Friendly</title>
-  <meta name="description" content="Voltri Café de Especialidad en Quilmes centro. Salón y take away, pet friendly. San Martín 780. Horarios, ubicación y WhatsApp para consultas." />
-  <meta name="keywords" content="café de especialidad en Quilmes, cafetería en Quilmes centro, café take away Quilmes, café Quilmes, Voltri Quilmes" />
-  <meta name="theme-color" content="#1a1a1a" />
-
-  <!-- Open Graph -->
-  <meta property="og:title" content="Voltri Café de Especialidad | Quilmes" />
-  <meta property="og:description" content="Café de especialidad en Quilmes centro. Salón y take away. Pet friendly. San Martín 780." />
-  <meta property="og:type" content="website" />
-
-  <!-- JSON-LD (SEO LocalBusiness) -->
+  <title>Voltri</title>
+  <meta name="theme-color" content="#0f0f0f" />
   <style>
     :root{
-      --headerH: 86px;
-      --promoH: 44px;
-      --bg:#0f0f0f;
-      --text:#f2f2f2;
-      --muted:#b8b8b8;
-      --accent:#d7b07a;
-      --ok:#42d37a;
-      --bad:#ff6b6b;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --bg:#0f0f0f; --text:#f2f2f2; --muted:#b8b8b8;
+      --accent:#d7b07a; --ok:#42d37a; --bad:#ff6b6b;
+      --shadow: 0 10px 30px rgba(0,0,0,35);
       --r:18px;
+      --promoH: 46px;
+      --headerH: 70px;
     }
-
-    html{
-      scroll-behavior: smooth;
-      scroll-padding-top: calc(var(--headerH) + var(--promoH));
-    }
-    section, #info, #horarios, #menu, #como-pedir, #faq, #destacado-producto{
-      scroll-margin-top: calc(var(--headerH) + var(--promoH));
-    }
-
+    html{scroll-behavior:smooth; scroll-padding-top: calc(var(--headerH) + var(--promoH));}
     *{box-sizing:border-box}
     body{
       margin:0;
@@ -50,44 +27,28 @@
     }
     a{color:inherit}
     .wrap{max-width:1100px;margin:0 auto;padding:22px}
-
-    /* Promo banner (editable) */
     .promo{
-      position: sticky;
-      top: 0;
-      z-index: 30;
+      position:sticky; top:0; z-index:30;
       background: rgba(215,176,122,.14);
       border-bottom:1px solid rgba(215,176,122,.22);
       backdrop-filter: blur(10px);
+      display:none;
     }
     .promo .wrap{
       padding: 10px 22px;
-      display:flex;
-      gap:12px;
-      align-items:center;
-      justify-content:space-between;
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
       min-height: var(--promoH);
     }
-    .promoTxt{
-      font-weight:800;
-      color:#f0d2a5;
-      letter-spacing:.01em;
-      font-size:14px;
-    }
+    .promoTxt{font-weight:800;color:#f0d2a5;letter-spacing:.01em;font-size:14px}
     .promoTxt span{color:var(--text);font-weight:700}
-    .promo .btn{padding:8px 12px;border-radius:12px;font-size:13px}
-
     .topbar{
-      position:sticky;
-      top: var(--promoH);
-      z-index:20;
+      position:sticky; top: var(--promoH); z-index:20;
       backdrop-filter: blur(10px);
       background: rgba(15,15,15,.65);
       border-bottom:1px solid rgba(255,255,255,.06);
     }
     .topbar .wrap{display:flex;align-items:center;gap:14px}
     .brand{display:flex;align-items:center;gap:10px;min-width:220px}
-
     a.logo{
       width:48px;height:48px;border-radius:12px;
       background: rgba(255,255,255,.06);
@@ -98,21 +59,12 @@
     }
     .logo img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
     .logo .fallback{
-      width:100%;height:100%;
-      border-radius:12px;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      font-weight:900;
-      letter-spacing:.04em;
-      color: var(--text);
-      background: rgba(255,255,255,.06);
+      width:100%;height:100%; border-radius:12px; display:none;
+      align-items:center;justify-content:center;font-weight:900;letter-spacing:.04em;
+      color: var(--text); background: rgba(255,255,255,.06);
     }
     .logo.is-fallback img{display:none}
     .logo.is-fallback .fallback{display:flex}
-
-    a.logo img{max-width:100%;max-height:100%;object-fit:contain;display:block}
-
     nav{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
     nav a{
       text-decoration:none;color:var(--muted);
@@ -121,7 +73,6 @@
     }
     nav a:hover{color:var(--text);background:rgba(255,255,255,.06)}
     .cta{display:flex;gap:10px;align-items:center;margin-left:6px}
-
     .btn{
       display:inline-flex;align-items:center;justify-content:center;
       gap:10px;padding:10px 14px;border-radius:14px;
@@ -129,26 +80,17 @@
       background: rgba(255,255,255,.06);
       text-decoration:none;font-weight:650;font-size:14px;
       transition:.2s ease;white-space:nowrap;
+      cursor:pointer;
     }
     .btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.09)}
     .btn.primary{
       background: linear-gradient(135deg, rgba(66,211,122,.95), rgba(66,211,122,.25));
       color:#0b1510;border-color: rgba(66,211,122,.35);
+      font-weight:850;
     }
-
     .hero{padding:34px 0 10px}
-    .grid{
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:18px;
-      align-items:stretch;
-    }
-    @media (max-width: 900px){
-      .grid{grid-template-columns:1fr}
-      .brand{min-width:auto}
-      nav{display:none}
-    }
-
+    .grid{display:grid;grid-template-columns: 1.2fr .8fr;gap:18px;align-items:stretch}
+    @media (max-width: 900px){.grid{grid-template-columns:1fr}.brand{min-width:auto}nav{display:none}}
     .card{
       background: rgba(22,22,22,.78);
       border: 1px solid rgba(255,255,255,.08);
@@ -156,11 +98,9 @@
       box-shadow: var(--shadow);
       padding:18px;
     }
-
     h1{margin:0 0 10px;font-size:42px;letter-spacing:-.02em}
     @media (max-width: 520px){ h1{font-size:34px} }
     .sub{color:var(--muted);font-size:16px;margin:0 0 16px}
-
     .pillrow{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 0}
     .pill{
       border:1px solid rgba(255,255,255,.10);
@@ -170,764 +110,336 @@
     }
     .pill .dot{display:inline-block;width:8px;height:8px;border-radius:99px;background:var(--accent);margin-right:8px;vertical-align:middle}
     .pill.ok .dot{background:var(--ok)}
-
     section{padding:14px 0}
     h2{margin:0 0 10px;font-size:24px}
     .muted{color:var(--muted)}
     .small{font-size:13px;color:var(--muted)}
-    .hr{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
-
-    .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media (max-width: 520px){ .cols{grid-template-columns:1fr} }
-    .kv{
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.04);
-      border-radius: 16px;
-      padding:12px;
-    }
-    .kv .k{color:var(--muted);font-size:12px;margin-bottom:6px}
-    .kv .v{font-size:15px;font-weight:650}
-    .kv a{color:var(--text);text-decoration:none}
-
-    .badge{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:8px 10px;border-radius:999px;
-      background: rgba(215,176,122,.12);
-      border:1px solid rgba(215,176,122,.25);
-      color:#f0d2a5;font-weight:700;font-size:13px;
-    }
-
-    /* Estado abierto/cerrado + destacado */
-    .status{
-      display:flex;align-items:center;gap:10px;
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.04);
-      border-radius: 16px;
-      padding:12px;
-      margin-top:12px;
-    }
-    .status .dot{
-      width:10px;height:10px;border-radius:999px;background:var(--ok);
-      box-shadow: 0 0 0 4px rgba(66,211,122,.12);
-      flex:0 0 auto;
-    }
-    .status.closed .dot{
-      background:var(--bad);
-      box-shadow: 0 0 0 4px rgba(255,107,107,.12);
-    }
-    .status .txt{font-weight:800}
-    .status .subtxt{color:var(--muted);font-size:13px;margin-top:2px}
-
-    /* Galería */
-    .gallery{
-      display:grid;
-      grid-template-columns:repeat(2,1fr);
-      gap:12px;
-    }
-    @media (max-width: 520px){ .gallery{grid-template-columns:1fr} }
-    .gallery img{
-      width:100%;
-      height:180px;
-      object-fit:cover;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.04);
-      cursor: zoom-in;
-    }
-
-    /* Lightbox */
-    #lightbox{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.85);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:9999;
-      cursor:zoom-out;
-      padding: 18px;
-    }
-    #lightbox img{
-      max-width:92vw;
-      max-height:92vh;
-      border-radius:16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.6);
-    }
-
-    /* Menú */
-    .menuGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap:12px;
-      margin-top: 8px;
-    }
+    .kv{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;margin:10px 0}
+    .kv .k{color:var(--muted);font-size:13px}
+    .kv .v{font-weight:850;text-align:right}
+    .menuGrid{display:grid;grid-template-columns: 1fr 1fr 1fr;gap:12px;margin-top:8px}
     @media (max-width: 900px){ .menuGrid{grid-template-columns:1fr} }
-    .menuBox{
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.04);
-      border-radius: 16px;
-      padding:14px;
-    }
+    .menuBox{border:1px solid rgba(255,255,255,.08);background: rgba(255,255,255,.04);border-radius:16px;padding:14px}
     .menuBox h3{margin:0 0 10px;font-size:16px}
-    .menuItem{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 0;
-      border-bottom:1px solid rgba(255,255,255,.06);
-    }
+    .menuItem{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}
     .menuItem:last-child{border-bottom:none}
     .menuItem .name{font-weight:700}
     .menuItem .desc{color:var(--muted);font-size:12px;margin-top:3px}
     .menuItem .price{font-weight:900;white-space:nowrap}
-
-    /* Cómo pedir + FAQ (mismo grid) */
-    .steps{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:12px;
-      margin-top:10px;
-    }
+    .steps{display:grid;grid-template-columns: repeat(3, 1fr);gap:12px;margin-top:10px}
     @media (max-width: 900px){ .steps{grid-template-columns:1fr} }
-    .step{
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.04);
-      border-radius: 16px;
-      padding:14px;
-    }
-    .stepNum{
-      width:34px;height:34px;border-radius:12px;
-      display:grid;place-items:center;
-      background: rgba(215,176,122,.14);
-      border:1px solid rgba(215,176,122,.22);
-      color:#f0d2a5;
-      font-weight:900;
-      margin-bottom:10px;
-    }
+    .step{border:1px solid rgba(255,255,255,.08);background: rgba(255,255,255,.04);border-radius: 16px;padding:14px}
+    .stepNum{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background: rgba(215,176,122,.14);border:1px solid rgba(215,176,122,.22);color:#f0d2a5;font-weight:900;margin-bottom:10px}
     .step h3{margin:0 0 6px;font-size:16px}
     .step p{margin:0;color:var(--muted);font-size:13px}
-
-    /* Reseñas */
     .reviews{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
     @media (max-width: 900px){ .reviews{grid-template-columns:1fr} }
-    .review{
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.04);
-      border-radius: 16px;
-      padding:14px;
-    }
+    .review{border:1px solid rgba(255,255,255,.08);background: rgba(255,255,255,.04);border-radius:16px;padding:14px}
     .review .who{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;align-items:flex-start}
     .stars{color:var(--accent);font-weight:900;letter-spacing:.03em;white-space:nowrap}
     .meta{font-size:12px;color:var(--muted);margin-top:2px}
-
-    .mapframe{
-      width:100%;
-      height:340px;
-      border:0;
-      border-radius:16px;
-      background:#101010;
-    }
-
-    /* Botones flotantes mobile */
-    .floatbar{
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
-      display:none;
-      gap: 10px;
-      z-index: 9998;
-      background: rgba(15,15,15,.72);
-      border-top:1px solid rgba(255,255,255,.06);
-      backdrop-filter: blur(10px);
-    }
-    .floatbar a{
-      flex:1;
-      text-align:center;
-      justify-content:center;
-      padding: 12px 14px;
-      border-radius: 16px;
-    }
-    @media (max-width: 900px){
-      .floatbar{display:flex;}
-      body{ padding-bottom: 88px; }
-    }
-
-    footer{padding:24px 0 40px;color:var(--muted);font-size:13px}
+    .mapframe{width:100%;height:340px;border:0;border-radius:16px;background:#101010}
+    footer{padding:24px 0 80px}
+    .hr{height:1px;background:rgba(255,255,255,.08);margin:18px 0}
+    .floatbar{position:fixed;left:0;right:0;bottom:0;display:none;gap:10px;padding:12px;background: rgba(15,15,15,.75);backdrop-filter: blur(10px);border-top:1px solid rgba(255,255,255,.08);z-index:50}
+    .floatbar .btn{flex:1}
+    @media (max-width: 900px){ .floatbar{display:flex} }
   </style>
 </head>
-
 <body>
-  <!-- Promo banner (editable) -->
-  <div class="promo">
+  <div class="promo" id="promo">
     <div class="wrap">
-      <div class="promoTxt">
-        ⭐ Promo: <span>2x1 en Espresso hasta las 11:00</span>
-      </div>
-      <a class="btn primary" href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20%C2%BFme%20reserv%C3%A1s%20la%20promo%202x1%20en%20espresso%3F" target="_blank" rel="noopener">
-        Pedir por WhatsApp
-      </a>
+      <div class="promoTxt"><span id="promoLabel">Promo</span>: <span id="promoText"></span></div>
+      <a class="btn" id="promoBtn" target="_blank" rel="noopener">Escribinos</a>
     </div>
   </div>
 
   <header class="topbar">
     <div class="wrap">
       <div class="brand">
-        <a class="logo" href="#" aria-label="Ir al inicio">
-          <img src="logo.jpg" alt="Voltri Café de Especialidad" onerror="this.closest('.logo').classList.add('is-fallback')" />
-          <span class="fallback">VOLTRI</span>
+        <a class="logo" href="#" aria-label="Inicio" id="logo">
+          <img src="logo.jpg" alt="Logo" onerror="this.closest('.logo').classList.add('is-fallback')" />
+          <span class="fallback" id="logoFallback">VOLTRI</span>
         </a>
         <div>
-          <div style="font-weight:900;letter-spacing:.02em">VOLTRI</div>
-          <div class="small">Café de especialidad · Quilmes</div>
+          <div class="small" id="tagline">☕ Café de especialidad</div>
+          <div style="font-weight:950" id="businessName">Voltri</div>
         </div>
       </div>
 
       <nav>
         <a href="#info">Info</a>
-        <a href="#horarios">Horarios</a>
+        <a href="#menu">Carta</a>
         <a href="#como-pedir">Cómo pedir</a>
         <a href="#faq">FAQ</a>
-        <a href="#menu">Carta</a>
         <a href="#ubicacion">Ubicación</a>
-        <a href="#resenas">Reseñas</a>
       </nav>
 
       <div class="cta">
-        <a class="btn" href="https://www.instagram.com/voltricafe/?hl=es-la" target="_blank" rel="noopener">Instagram</a>
-        <a class="btn primary" href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20quiero%20consultar%20por%20cafe%20y%20horarios%20%F0%9F%98%8A" target="_blank" rel="noopener">WhatsApp</a>
+        <a class="btn" href="indexMenu.html">Carta rápida</a>
+        <a class="btn primary" id="waTop" target="_blank" rel="noopener">WhatsApp</a>
       </div>
     </div>
   </header>
 
   <main class="wrap">
-    <section class="hero">
+    <section class="hero" id="inicio">
       <div class="grid">
         <div class="card">
-          <div class="badge">☕ Café de especialidad · Salón y take away</div>
-          <h1>Voltri Café de Especialidad</h1>
-          <p class="sub">
-            Un lugar para cortar el día con buen café, algo rico y atención cercana.
-            <span class="muted">Pet friendly 🐶 · Quilmes</span>
-          </p>
+          <h1 id="heroTitle">Café de especialidad</h1>
+          <p class="sub" id="heroSubtitle">Desayunos, meriendas y algo rico para acompañar.</p>
 
           <div class="pillrow">
-            <div class="pill ok"><span class="dot"></span>Consumo en el lugar</div>
-            <div class="pill ok"><span class="dot"></span>Para llevar</div>
-            <div class="pill"><span class="dot"></span>Pet friendly</div>
-            <div class="pill"><span class="dot"></span>Amigable con LGBTQ+</div>
+            <div class="pill ok" id="openPill"><span class="dot"></span><span id="openText">Cargando horario…</span></div>
+            <div class="pill"><span class="dot"></span><span id="addrPill">San Martín 780, Quilmes</span></div>
           </div>
 
-          <!-- Estado abierto/cerrado -->
-          <div id="statusBox" class="status" aria-live="polite">
-            <span class="dot"></span>
-            <div>
-              <div id="statusText" class="txt">Cargando estado...</div>
-              <div id="statusSub" class="subtxt">Horarios: Lun a Vie 08–13 / 15–19 · Sáb 08–13</div>
-            </div>
-          </div>
-
-          <!-- Destacado del día (editable) -->
-          <div class="status" aria-label="Destacado del día">
-            <span class="dot"></span>
-            <div>
-              <div class="txt">⭐ Destacado del día</div>
-              <div class="subtxt">Café de galletita + budín casero · consultá disponibilidad</div>
-            </div>
-          </div>
-
-          <div class="hr"></div>
-
-          <div id="info">
-            <h2>Info</h2>
-            <div class="cols">
-              <div class="kv">
-                <div class="k">Dirección</div>
-                <div class="v">San Martín 780, Quilmes (B1878)</div>
-                <div class="small">
-                  <a target="_blank" rel="noopener"
-                     href="https://www.google.com/maps/search/?api=1&query=San%20Mart%C3%ADn%20780%2C%20Quilmes%2C%20Buenos%20Aires">
-                    Ver en Google Maps →
-                  </a>
-                </div>
-              </div>
-
-              <div class="kv">
-                <div class="k">Contacto</div>
-                <div class="v">
-                  <a href="tel:+541125052219">11 2505-2219</a>
-                </div>
-                <div class="small">
-                  <a target="_blank" rel="noopener"
-                     href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20tengo%20una%20consulta%20%F0%9F%91%8B">
-                    Escribir por WhatsApp →
-                  </a>
-                </div>
-              </div>
-
-              <div class="kv">
-                <div class="k">Medios de pago</div>
-                <div class="v">Efectivo · Mercado Pago · Débito · Crédito</div>
-              </div>
-
-              <div class="kv">
-                <div class="k">Precio estimado</div>
-                <div class="v">$5.000–$10.000 por persona</div>
-              </div>
-
-              <div class="kv">
-                <div class="k">Servicio</div>
-                <div class="v">Salón y take away</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="hr"></div>
-
-          <div id="horarios">
-            <h2>Horarios</h2>
-            <div class="cols">
-              <div class="kv">
-                <div class="k">Lunes a Viernes</div>
-                <div class="v">08:00 a 13:00 · 15:00 a 19:00</div>
-              </div>
-              <div class="kv">
-                <div class="k">Sábados</div>
-                <div class="v">08:00 a 13:00</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="hr"></div>
-
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <a class="btn primary" href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20quiero%20reservar%2Fconsultar%20%F0%9F%98%8A" target="_blank" rel="noopener">Reservas / Consultas</a>
-            <a class="btn" href="https://www.instagram.com/voltricafe/?hl=es-la" target="_blank" rel="noopener">Ver novedades</a>
-            <a class="btn" href="#ubicacion">Cómo llegar</a>
+          <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn primary" id="waHero" target="_blank" rel="noopener">Consultar por WhatsApp</a>
+            <a class="btn" id="mapsHero" target="_blank" rel="noopener">Cómo llegar</a>
+            <a class="btn" id="igHero" target="_blank" rel="noopener">Instagram</a>
           </div>
         </div>
 
-        <div class="card">
-          <h2>Galería</h2>
-          <div id="gallery" class="gallery"></div>
-          <p class="small" id="galleryNote"></p>
+        <div class="card" id="info">
+          <h2>Info</h2>
+          <div class="kv"><div class="k">Dirección</div><div class="v" id="addrInfo">—</div></div>
+          <div class="kv"><div class="k">Horarios</div><div class="v" id="hoursInfo">—</div></div>
+          <div class="kv"><div class="k">Pagos</div><div class="v" id="paymentsInfo">—</div></div>
+          <div class="kv"><div class="k">WhatsApp</div><div class="v" id="phoneInfo">—</div></div>
         </div>
       </div>
     </section>
 
-    <!-- Mejora premium (opcional): una foto destacada -->
-    <section id="destacado-producto">
-      <div class="card">
-        <h2>Nuestro café de especialidad</h2>
-        <p class="muted" style="margin-top:0">
-          Seleccionamos granos de calidad y cuidamos cada detalle en la preparación para ofrecer una experiencia única.
-        </p>
-
-        <!-- Opcional: agregá una sola imagen "destacado.jpg" dentro de /img y descomentá esta línea
-        <img src="img/destacado.jpg" alt="Café de especialidad Voltri" style="width:100%;border-radius:16px;margin-top:12px;border:1px solid rgba(255,255,255,.08)" />
-        -->
-      </div>
-    </section>
-
-    <!-- Cómo pedir -->
-    <section id="como-pedir">
-      <div class="card">
-        <h2>Cómo pedir</h2>
-        <p class="muted" style="margin-top:0">Tres pasos simples para pedir rápido.</p>
-
-        <div class="steps">
-          <div class="step">
-            <div class="stepNum">1</div>
-            <h3>Elegí</h3>
-            <p>Mirás la carta y elegís tu café, dulce o especial del día.</p>
-          </div>
-          <div class="step">
-            <div class="stepNum">2</div>
-            <h3>Escribinos</h3>
-            <p>Mandás un WhatsApp con tu pedido y te confirmamos disponibilidad.</p>
-          </div>
-          <div class="step">
-            <div class="stepNum">3</div>
-            <h3>Retirá o disfrutá</h3>
-            <p>Pasás por el local para take away o te quedás a disfrutar en el salón.</p>
-          </div>
-        </div>
-
-        <div class="hr"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn primary" href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20quiero%20hacer%20un%20pedido%20%F0%9F%98%8A" target="_blank" rel="noopener">
-            Pedir por WhatsApp
-          </a>
-          <a class="btn" href="#menu">Ver carta</a>
-        </div>
-      </div>
-    </section>
-
-    <!-- FAQ -->
-    <section id="faq">
-      <div class="card">
-        <h2>Preguntas frecuentes</h2>
-        <div class="steps">
-          <div class="step">
-            <h3>🐶 ¿Es pet friendly?</h3>
-            <p>Sí, podés venir con tu mascota.</p>
-          </div>
-
-          <div class="step">
-            <h3>🪑 ¿Hay lugar para sentarse?</h3>
-            <p>Sí, contamos con mesas y barra para consumir en el lugar.</p>
-          </div>
-
-          <div class="step">
-            <h3>💳 ¿Qué medios de pago aceptan?</h3>
-            <p>Efectivo, Mercado Pago, débito y crédito.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Carta digital -->
     <section id="menu">
-      <div class="card">
-        <h2>Carta</h2>
-        <p class="muted" style="margin-top:0">Precios orientativos. Consultar disponibilidad del día.</p>
+      <h2>Carta</h2>
+      <div class="muted">Se actualiza desde <code>products.json</code> (admin).</div>
+      <div class="menuGrid" id="menuGrid"></div>
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn primary" href="indexMenu.html">Abrir carta rápida</a>
+      </div>
+    </section>
 
-        <div id="menuGrid" class="menuGrid"></div></section>
+    <section id="como-pedir">
+      <h2>Cómo pedir</h2>
+      <div class="steps" id="steps"></div>
+    </section>
+
+    <section id="faq">
+      <h2>Preguntas frecuentes</h2>
+      <div class="card" id="faqBox"></div>
+    </section>
+
+    <section id="reseñas">
+      <h2>Reseñas</h2>
+      <div class="reviews" id="reviews"></div>
+    </section>
 
     <section id="ubicacion">
-      <div class="card">
-        <h2>Ubicación</h2>
-        <p class="muted" style="margin-top:0">
-          San Martín 780, Quilmes, Provincia de Buenos Aires.
-        </p>
-
-        <iframe
-          class="mapframe"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          src="https://www.google.com/maps?q=San%20Mart%C3%ADn%20780%20Quilmes%20Buenos%20Aires&output=embed">
-        </iframe>
-
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-          <a class="btn" target="_blank" rel="noopener"
-             href="https://www.google.com/maps/search/?api=1&query=San%20Mart%C3%ADn%20780%2C%20Quilmes%2C%20Buenos%20Aires">
-            Abrir en Google Maps
-          </a>
-          <a class="btn primary" target="_blank" rel="noopener"
-             href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20%C2%BFme%20pas%C3%A1s%20la%20carta%20o%20opciones%20del%20d%C3%ADa%3F">
-            Pedir carta por WhatsApp
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <section id="resenas">
-      <div class="card">
-        <h2>Reseñas reales</h2>
-
-        <div class="reviews">
-          <div class="review">
-            <div class="who">
-              <div>
-                <div style="font-weight:800">Erika Blumtritt</div>
-                <div class="meta">Hace 2 años</div>
-              </div>
-              <div class="stars">★★★★★</div>
-            </div>
-            <div class="muted">
-              El mejor café de especialidad, preparado por el mejor barista. Los tentempiés son riquísimos y tienen una gran variedad. El lugar está hermosamente ambientado y, si bien es una cafetería al paso, tiene algunas mesitas, una barra y habilitaron un patio al lado (fotos) en el que podés sentarte tranquilamente mientras disfrutás de un buen café. En cuanto a la atención, es de 10, bien personalizada. Y, como si fuera poco, el lugar es pet friendly. Súper recomiendo ❤️💪
-            </div>
-          </div>
-
-          <div class="review">
-            <div class="who">
-              <div>
-                <div style="font-weight:800">Aldana Busso</div>
-                <div class="meta">Editado · Hace 2 años</div>
-              </div>
-              <div class="stars">★★★★★</div>
-            </div>
-            <div class="muted">
-              Fuimos media hora antes del cierre, la atención es rapidísima y todo lo que consumimos excelente. El café estaba riquísimo (probamos el de galletita también y es una experiencia diferente y genial, el chocolate le da el toque), los budines y los alfajores caseros una bomba, se nota mucho la calidad! La atención de Felipe es muy cálida y piensa mucho en el cliente. Se convirtió en mi nueva cafetería por el barrio, además todavía tengo que probar las delicias italianas!
-            </div>
-          </div>
-
-          <div class="review">
-            <div class="who">
-              <div>
-                <div style="font-weight:800">Martín de Almeida</div>
-                <div class="meta">Hace un año</div>
-              </div>
-              <div class="stars">★★★★☆</div>
-            </div>
-            <div class="muted">
-              Ojalá hubiese más estrellas para las porciones de torta de naranja, es algo indescriptible, los budines sin embargo pelean la punta. El café riquísimo. La atención es destacable, se nota que es alguien a quien le gusta mucho su trabajo. El lugar es muy chico, de todos modos no lo cambiaría, creo que habilitaron un patiecito al costado no estoy seguro, es difícil estacionar cerca? A veces sí, no se puede todo!
-              <br><br>
-              Advertencia, después de este lugar vas a sentir que en Habana te dan agua con pan duro... Bueno en esto último exagero un poco. (No hay atención a la mesa, hay que retirar el pedido del mostrador) Hay azúcar de mascabado y edulcorante para endulzar las infusiones, recomiendo probar primero sin nada.
-            </div>
-          </div>
-
-          <div class="review">
-            <div class="who">
-              <div>
-                <div style="font-weight:800">Ever Ramírez</div>
-                <div class="meta">Hace 3 meses</div>
-              </div>
-              <div class="stars">★★★★★</div>
-            </div>
-            <div class="muted">
-              Un lugar ideal para parar y tomarse un buen café, no se olviden de probar los scones de queso una delicia (de fondo el programa del Chavo el 8 lo más). Recomendado, excelente atención.
-            </div>
-          </div>
-
-          <div class="review">
-            <div class="who">
-              <div>
-                <div style="font-weight:800">Angeles</div>
-                <div class="meta">Hace 10 meses</div>
-              </div>
-              <div class="stars">★★★★★</div>
-            </div>
-            <div class="muted">
-              La atención es estupenda, y disfruta de una muy buena y cordial atención, y sobretodo el Café de Especialidad 🌻
-            </div>
-          </div>
-
-          <div class="review">
-            <div class="who">
-              <div>
-                <div style="font-weight:800">Vivi Vivi</div>
-                <div class="meta">Hace 2 años</div>
-              </div>
-              <div class="stars">★★★★★</div>
-            </div>
-            <div class="muted">
-              De lo mejor... el lugar es súper cálido, un pedazito de Italia en el centro de Quilmes.
-              <br><br>
-              Un día volviendo de buscar un pedido... los vi a los dueños La tana y Feli, dando los últimos retoques y esperando a que Edesur les diera luz... o sea esperando a que inauguren. Y desde ése día encontré el lugar ideal para desayunar ❤️
-              <br><br>
-              El Café es de 10... de mis preferidos para acompañar: el budín de banana, el de arándanos y el canoli😉.
-            </div>
-          </div>
-        </div>
-      </div>
+      <h2>Ubicación</h2>
+      <iframe class="mapframe" id="mapframe" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </section>
 
     <footer>
       <div class="hr"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
-        <div>© <span id="y"></span> Voltri · Quilmes</div>
-        <div class="small">San Martín 780 · WhatsApp: 11 2505-2219 · <a href="https://www.instagram.com/voltricafe/?hl=es-la" target="_blank" rel="noopener">Instagram</a></div>
+        <div>© <span id="y"></span> <span id="footerName">Voltri</span></div>
+        <div class="small"><span id="footerAddr">—</span> · WhatsApp: <span id="footerPhone">—</span> · <a id="footerIg" target="_blank" rel="noopener">Instagram</a></div>
       </div>
     </footer>
   </main>
 
-  <!-- Botones flotantes mobile -->
   <div class="floatbar">
-    <a class="btn primary" target="_blank" rel="noopener"
-       href="https://wa.me/5491125052219?text=Hola%20Voltri%2C%20quiero%20consultar%20por%20cafe%20y%20horarios%20%F0%9F%98%8A">WhatsApp</a>
-
-    <a class="btn" target="_blank" rel="noopener"
-       href="https://www.google.com/maps/search/?api=1&query=San%20Mart%C3%ADn%20780%2C%20Quilmes%2C%20Buenos%20Aires">Cómo llegar</a>
+    <a class="btn primary" id="waFloat" target="_blank" rel="noopener">WhatsApp</a>
+    <a class="btn" id="mapsFloat" target="_blank" rel="noopener">Cómo llegar</a>
   </div>
 
-  <!-- Lightbox -->
-  <div id="lightbox">
-    <img id="lightbox-img" alt="Imagen ampliada" />
-  </div>
+<script>
+  const y = document.getElementById("y");
+  y.textContent = new Date().getFullYear();
 
-  <script>
-    // Año footer
-    document.getElementById("y").textContent = new Date().getFullYear();
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
 
-    // Estado abierto/cerrado (AR)
-    function hmToMin(hm){
-      const [h,m] = hm.split(":").map(Number);
-      return h*60 + m;
+  function hmToMin(hm){
+    const [h,m] = hm.split(":").map(Number);
+    return h*60 + m;
+  }
+  function getBuenosAiresNow(tz){
+    const parts = new Intl.DateTimeFormat("es-AR", {
+      timeZone: tz || "America/Argentina/Buenos_Aires",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }).formatToParts(new Date());
+
+    let weekday = "", hour = "00", minute = "00";
+    for(const p of parts){
+      if(p.type === "weekday") weekday = p.value.toLowerCase();
+      if(p.type === "hour") hour = p.value;
+      if(p.type === "minute") minute = p.value;
     }
-    function getBuenosAiresNow(){
-      const parts = new Intl.DateTimeFormat("es-AR", {
-        timeZone: "America/Argentina/Buenos_Aires",
-        weekday: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false
-      }).formatToParts(new Date());
+    return { weekday, minutes: (parseInt(hour,10)*60 + parseInt(minute,10)) };
+  }
+  function weekdayToNum(w){
+    // es-AR: lun, mar, mié, jue, vie, sáb, dom
+    w = (w||"").toLowerCase();
+    if(w.startsWith("lun")) return 1;
+    if(w.startsWith("mar")) return 2;
+    if(w.startsWith("mi")) return 3;
+    if(w.startsWith("jue")) return 4;
+    if(w.startsWith("vie")) return 5;
+    if(w.startsWith("sá") || w.startsWith("sa")) return 6;
+    return 0; // dom
+  }
+  function computeOpenNow(site){
+    const tz = site?.hours?.timezone || "America/Argentina/Buenos_Aires";
+    const schedule = site?.hours?.schedule || {};
+    const now = getBuenosAiresNow(tz);
+    const dayNum = weekdayToNum(now.weekday);
+    const ranges = schedule[String(dayNum)] || [];
+    for(const r of ranges){
+      const start = hmToMin(r[0]);
+      const end = hmToMin(r[1]);
+      if(now.minutes >= start && now.minutes < end) return true;
+    }
+    return false;
+  }
 
-      let weekday = "", hour = "00", minute = "00";
-      for(const p of parts){
-        if(p.type === "weekday") weekday = p.value.toLowerCase();
-        if(p.type === "hour") hour = p.value;
-        if(p.type === "minute") minute = p.value;
-      }
-      return { weekday, minutes: (parseInt(hour,10)*60 + parseInt(minute,10)) };
+  async function loadSite(){
+    const res = await fetch("/site.json", { cache: "no-store" });
+    const site = await res.json();
+
+    document.title = site?.seo?.title || document.title;
+    const theme = document.querySelector('meta[name="theme-color"]');
+    if(theme && site?.seo?.themeColor) theme.setAttribute("content", site.seo.themeColor);
+
+    document.getElementById("businessName").textContent = site.businessName || "Voltri";
+    document.getElementById("footerName").textContent = site.businessName || "Voltri";
+    document.getElementById("logoFallback").textContent = (site.businessName || "Voltri").toUpperCase().slice(0,8);
+    document.getElementById("tagline").textContent = site.tagline || "";
+
+    document.getElementById("heroTitle").textContent = site.heroTitle || "";
+    document.getElementById("heroSubtitle").textContent = site.heroSubtitle || "";
+
+    const addr = site?.location?.addressText || "";
+    document.getElementById("addrPill").textContent = addr;
+    document.getElementById("addrInfo").textContent = addr;
+    document.getElementById("footerAddr").textContent = addr;
+
+    const hours = site?.hours?.summary || "";
+    document.getElementById("hoursInfo").textContent = hours;
+
+    document.getElementById("paymentsInfo").textContent = site.payments || "";
+    document.getElementById("phoneInfo").textContent = site?.contact?.phoneDisplay || "";
+    document.getElementById("footerPhone").textContent = site?.contact?.phoneDisplay || "";
+
+    const ig = site?.contact?.instagramUrl || "#";
+    const igHero = document.getElementById("igHero");
+    igHero.href = ig;
+    document.getElementById("footerIg").href = ig;
+
+    const waNum = site?.contact?.whatsappNumber || "";
+    const waMsg = site?.promo?.waMessage || ("Hola "+(site.businessName||"") + "!");
+    const waUrl = "https://wa.me/"+encodeURIComponent(waNum)+"?text="+encodeURIComponent(waMsg);
+
+    for(const id of ["waTop","waHero","waFloat","promoBtn"]){
+      const a = document.getElementById(id);
+      if(a) a.href = waUrl;
     }
 
-    const schedule = {
-      1: [["08:00","13:00"],["15:00","19:00"]],
-      2: [["08:00","13:00"],["15:00","19:00"]],
-      3: [["08:00","13:00"],["15:00","19:00"]],
-      4: [["08:00","13:00"],["15:00","19:00"]],
-      5: [["08:00","13:00"],["15:00","19:00"]],
-      6: [["08:00","13:00"]],
-      0: []
-    };
-
-    function weekdayToIndex(w){
-      if(w.startsWith("lun")) return 1;
-      if(w.startsWith("mar")) return 2;
-      if(w.startsWith("mi"))  return 3;
-      if(w.startsWith("jue")) return 4;
-      if(w.startsWith("vie")) return 5;
-      if(w.startsWith("sá") || w.startsWith("sa")) return 6;
-      return 0;
+    const mq = site?.location?.mapsQuery || addr;
+    const mapsUrl = "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(mq);
+    for(const id of ["mapsHero","mapsFloat"]){
+      const a = document.getElementById(id);
+      if(a) a.href = mapsUrl;
     }
 
-    function computeStatus(){
-      const now = getBuenosAiresNow();
-      const day = weekdayToIndex(now.weekday);
-      const spans = schedule[day] || [];
-      const nowMin = now.minutes;
-
-      for(const [o,c] of spans){
-        const oMin = hmToMin(o), cMin = hmToMin(c);
-        if(nowMin >= oMin && nowMin < cMin) return { open:true, closesAt: c };
-      }
-
-      for(const [o] of spans){
-        const oMin = hmToMin(o);
-        if(nowMin < oMin) return { open:false, opensAt: o, when:"hoy" };
-      }
-
-      for(let i=1;i<=7;i++){
-        const d = (day + i) % 7;
-        const s = schedule[d] || [];
-        if(s.length) return { open:false, opensAt: s[0][0], when: (i===1 ? "mañana" : "próximo día") };
-      }
-
-      return { open:false };
+    // promo
+    if(site?.promo?.enabled){
+      document.getElementById("promoLabel").textContent = site.promo.label || "Promo";
+      document.getElementById("promoText").textContent = site.promo.text || "";
+      document.getElementById("promoBtn").textContent = site.promo.buttonText || "Escribinos";
+      document.getElementById("promo").style.display = "block";
     }
 
-    function renderStatus(){
-      const box = document.getElementById("statusBox");
-      const t = document.getElementById("statusText");
-      if(!box || !t) return;
+    // open/closed
+    const isOpen = computeOpenNow(site);
+    document.getElementById("openText").textContent = isOpen ? "Abierto ahora" : "Cerrado ahora";
 
-      const st = computeStatus();
-      if(st.open){
-        box.classList.remove("closed");
-        t.textContent = `🟢 Abierto ahora · cerramos a las ${st.closesAt}`;
-      }else{
-        box.classList.add("closed");
-        t.textContent = st.opensAt
-          ? `🔴 Cerrado ahora · abrimos ${st.when} a las ${st.opensAt}`
-          : `🔴 Cerrado ahora`;
-      }
-    }
-    renderStatus();
-    setInterval(renderStatus, 60 * 1000);
+    // steps
+    const steps = document.getElementById("steps");
+    steps.innerHTML = (site.howToOrder || []).slice(0,3).map((s,i)=>`
+      <div class="step">
+        <div class="stepNum">${i+1}</div>
+        <h3>${escapeHtml(s.title||"")}</h3>
+        <p>${escapeHtml(s.text||"")}</p>
+      </div>`).join("");
 
-    // Galería automática + Lightbox
-    (async function loadGallery(){
-      const gallery = document.getElementById("gallery");
-      const note = document.getElementById("galleryNote");
-      const lightbox = document.getElementById("lightbox");
-      const lightboxImg = document.getElementById("lightbox-img");
-      if(!gallery || !note || !lightbox || !lightboxImg) return;
+    // faq
+    const faq = document.getElementById("faqBox");
+    faq.innerHTML = (site.faq || []).map(x=>`
+      <div style="margin:10px 0">
+        <div style="font-weight:900">${escapeHtml(x.q||"")}</div>
+        <div class="small" style="margin-top:4px">${escapeHtml(x.a||"")}</div>
+      </div>`).join("") || "<div class='small'>Sin FAQ por ahora.</div>";
 
-      try{
-        const res = await fetch("img/images.json", { cache: "no-store" });
-        if(!res.ok) throw new Error("No se pudo cargar img/images.json");
-        const files = await res.json();
+    // reviews
+    const reviews = document.getElementById("reviews");
+    reviews.innerHTML = (site.reviews || []).map(r=>{
+      const stars = "★★★★★".slice(0, Math.max(0, Math.min(5, Number(r.stars||0))));
+      return `
+      <div class="review">
+        <div class="who">
+          <div>
+            <div style="font-weight:900">${escapeHtml(r.name||"")}</div>
+            <div class="meta">${escapeHtml(r.meta||"")}</div>
+          </div>
+          <div class="stars">${stars}</div>
+        </div>
+        <div class="small">${escapeHtml(r.text||"")}</div>
+      </div>`;
+    }).join("");
 
-        if(!Array.isArray(files) || files.length === 0){
-          note.textContent = "";
-          return;
-        }
+    // map iframe
+    const map = document.getElementById("mapframe");
+    map.src = "https://www.google.com/maps?q="+encodeURIComponent(mq)+"&output=embed";
+  }
 
-        for(const file of files){
-          const img = document.createElement("img");
-          img.loading = "lazy";
-          img.alt = "Voltri - Galería";
-          img.src = "img/" + file;
-
-          img.addEventListener("click", () => {
-            lightboxImg.src = img.src;
-            lightbox.style.display = "flex";
-            document.body.style.overflow = "hidden";
-          });
-
-          gallery.appendChild(img);
-        }
-
-        note.textContent = "";
-      }catch(err){
-        note.textContent = "";
-      }
-
-      lightbox.addEventListener("click", () => {
-        lightbox.style.display = "none";
-        lightboxImg.src = "";
-        document.body.style.overflow = "";
-      });
-
-      document.addEventListener("keydown", (e) => {
-        if(e.key === "Escape" && lightbox.style.display === "flex"){
-          lightbox.click();
-        }
-      });
-    })();
-  </script>
-
-  <script>
-    // Carta desde products.json
-    (async function loadMenu(){
-      const grid = document.getElementById("menuGrid");
-      if(!grid) return;
-
-      try{
-        const res = await fetch("products.json", { cache: "no-store" });
-        if(!res.ok) throw new Error("No se pudo cargar products.json");
-        const data = await res.json();
-
-        if(!data || !Array.isArray(data.categories)){
-          grid.innerHTML = "";
-          return;
-        }
-
-        grid.innerHTML = data.categories.map(cat => {
-          const items = (cat.items || []).map(it => `
-            <div class="menuItem">
-              <div>
-                <div class="name">${escapeHtml(it.name || "")}</div>
-                <div class="desc">${escapeHtml(it.description || "")}</div>
-              </div>
-              <div class="price">${escapeHtml(it.price || "")}</div>
+  async function loadMenu(){
+    const grid = document.getElementById("menuGrid");
+    try{
+      const res = await fetch("/products.json", { cache: "no-store" });
+      const data = await res.json();
+      const cats = Array.isArray(data.categories) ? data.categories : [];
+      grid.innerHTML = cats.map(cat => {
+        const items = (cat.items || []).slice(0,5).map(it => `
+          <div class="menuItem">
+            <div>
+              <div class="name">${escapeHtml(it.name||"")}</div>
+              <div class="desc">${escapeHtml(it.description||"")}</div>
             </div>
-          `).join("");
-
-          return `
-            <div class="menuBox">
-              <h3>${escapeHtml(cat.category || "")}</h3>
-              ${items}
-            </div>
-          `;
-        }).join("");
-      }catch(e){
-        // si falla, no mostramos nada
-      }
-    })();
-
-    function escapeHtml(str){
-      return String(str)
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
+            <div class="price">${escapeHtml(it.price||"")}</div>
+          </div>
+        `).join("");
+        return `<div class="menuBox"><h3>${escapeHtml(cat.category||"")}</h3>${items}</div>`;
+      }).join("");
+    }catch(e){
+      grid.innerHTML = "<div class='small'>No se pudo cargar la carta.</div>";
     }
+  }
 
-  </script>
+  (async function init(){
+    try{ await loadSite(); }catch(_e){}
+    await loadMenu();
+  })();
+</script>
 </body>
 </html>

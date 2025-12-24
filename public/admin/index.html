@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Voltri · Admin (Carta)</title>
+  <title>Voltri · Admin</title>
   <meta name="theme-color" content="#0f0f0f" />
   <style>
     :root{
       --bg:#0f0f0f; --text:#f2f2f2; --muted:#b8b8b8;
       --accent:#d7b07a; --ok:#42d37a; --bad:#ff6b6b;
-      --shadow: 0 10px 30px rgba(0,0,0,.35); --r:18px;
+      --shadow: 0 10px 30px rgba(0,0,0,35); --r:18px;
     }
     *{box-sizing:border-box}
     body{
@@ -33,6 +33,18 @@
     h1{margin:0 0 6px;font-size:28px;letter-spacing:-.02em}
     .muted{color:var(--muted)}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .tab{
+      padding:8px 12px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      cursor:pointer;font-weight:850;font-size:13px;
+    }
+    .tab.active{
+      border-color: rgba(215,176,122,.35);
+      background: rgba(215,176,122,.14);
+      color:#f0d2a5;
+    }
     .btn{
       display:inline-flex;align-items:center;justify-content:center;
       gap:10px;padding:10px 14px;border-radius:14px;
@@ -50,7 +62,7 @@
     .btn.danger{border-color:rgba(255,107,107,.25);background:rgba(255,107,107,.10)}
     textarea{
       width:100%;
-      min-height: 460px;
+      min-height: 520px;
       resize: vertical;
       border-radius: 16px;
       padding: 14px;
@@ -59,7 +71,7 @@
       color: var(--text);
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
       font-size: 13px;
-      line-height: 1.35;
+      line-height:1.35;
       outline: none;
     }
     textarea:focus{border-color:rgba(215,176,122,.35)}
@@ -89,6 +101,7 @@
     input:focus{border-color:rgba(215,176,122,.35)}
     .small{font-size:12px;color:var(--muted)}
     code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.08)}
+    ul{margin:8px 0 0;padding-left:18px}
   </style>
 </head>
 <body>
@@ -96,13 +109,19 @@
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div>
-          <h1>Admin · Carta (products.json)</h1>
-          <div class="muted">Editá y guardá la carta que usan <code>index.html</code> e <code>indexMenu.html</code>.</div>
+          <h1>Admin · Sitio</h1>
+          <div class="muted">Editá <code>site.json</code> (info del sitio) y <code>products.json</code> (carta).</div>
         </div>
         <div class="row">
           <a class="btn" href="/" target="_blank" rel="noopener">Abrir sitio</a>
+          <a class="btn" href="/indexMenu.html" target="_blank" rel="noopener">Abrir carta rápida</a>
           <button class="btn" id="btnReload" type="button">Recargar</button>
         </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" id="tabSite" type="button">site.json</button>
+        <button class="tab" id="tabProducts" type="button">products.json</button>
       </div>
 
       <div class="grid">
@@ -130,14 +149,7 @@
           <div class="kv">
             <div class="k">Validación rápida</div>
             <div id="status" class="status">Esperando…</div>
-            <div class="small" style="margin-top:8px">
-              Reglas mínimas:
-              <ul>
-                <li><code>categories</code> es array</li>
-                <li>cada category tiene <code>category</code> y <code>items</code></li>
-                <li>cada item tiene <code>name</code>, <code>description</code>, <code>price</code></li>
-              </ul>
-            </div>
+            <div class="small" style="margin-top:8px" id="rulesBox"></div>
           </div>
 
           <div class="kv">
@@ -153,17 +165,20 @@
 
 <script>
 const TOKEN_KEY = "voltri_admin_token_v1";
-
 const editor = document.getElementById("editor");
 const tokenInput = document.getElementById("token");
 const statusBox = document.getElementById("status");
 const hint = document.getElementById("hint");
+const rulesBox = document.getElementById("rulesBox");
+
+let mode = "site"; // "site" | "products"
 
 function setStatus(ok, msg){
   statusBox.className = "status " + (ok ? "ok" : "bad");
   statusBox.textContent = msg;
 }
-function validateJson(obj){
+
+function validateProducts(obj){
   if(!obj || !Array.isArray(obj.categories)) return "Falta categories[]";
   for(const c of obj.categories){
     if(!c || typeof c.category !== "string") return "Category inválida (category)";
@@ -177,15 +192,75 @@ function validateJson(obj){
   return "";
 }
 
+function validateSite(obj){
+  if(!obj || typeof obj !== "object") return "Debe ser un objeto JSON";
+  if(typeof obj.businessName !== "string" || !obj.businessName.trim()) return "Falta businessName";
+  if(typeof obj.heroTitle !== "string") return "Falta heroTitle";
+  if(typeof obj.heroSubtitle !== "string") return "Falta heroSubtitle";
+
+  if(!obj.contact || typeof obj.contact !== "object") return "Falta contact";
+  if(typeof obj.contact.whatsappNumber !== "string" || !obj.contact.whatsappNumber.trim()) return "Falta contact.whatsappNumber";
+  if(typeof obj.contact.phoneDisplay !== "string") return "Falta contact.phoneDisplay";
+  if(typeof obj.contact.instagramUrl !== "string") return "Falta contact.instagramUrl";
+
+  if(!obj.location || typeof obj.location !== "object") return "Falta location";
+  if(typeof obj.location.addressText !== "string") return "Falta location.addressText";
+  if(typeof obj.location.mapsQuery !== "string") return "Falta location.mapsQuery";
+
+  if(!obj.hours || typeof obj.hours !== "object") return "Falta hours";
+  if(typeof obj.hours.timezone !== "string") return "Falta hours.timezone";
+  if(typeof obj.hours.summary !== "string") return "Falta hours.summary";
+  if(!obj.hours.schedule || typeof obj.hours.schedule !== "object") return "Falta hours.schedule";
+
+  for(const k of ["0","1","2","3","4","5","6"]){
+    const v = obj.hours.schedule[k];
+    if(!Array.isArray(v)) return "hours.schedule."+k+" debe ser array";
+    for(const rng of v){
+      if(!Array.isArray(rng) || rng.length !== 2) return "hours.schedule."+k+" debe ser [[HH:mm,HH:mm]]";
+    }
+  }
+
+  if(typeof obj.payments !== "string") return "Falta payments";
+  if(!Array.isArray(obj.highlights)) return "Falta highlights[]";
+  if(!Array.isArray(obj.howToOrder)) return "Falta howToOrder[]";
+  if(!Array.isArray(obj.faq)) return "Falta faq[]";
+  if(!Array.isArray(obj.reviews)) return "Falta reviews[]";
+  if(!obj.seo || typeof obj.seo !== "object") return "Falta seo";
+  if(typeof obj.seo.title !== "string") return "Falta seo.title";
+  if(typeof obj.seo.description !== "string") return "Falta seo.description";
+  if(typeof obj.seo.themeColor !== "string") return "Falta seo.themeColor";
+  if(obj.promo != null){
+    if(typeof obj.promo !== "object") return "promo inválido";
+    if(typeof obj.promo.enabled !== "boolean") return "Falta promo.enabled";
+    if(typeof obj.promo.label !== "string") return "Falta promo.label";
+    if(typeof obj.promo.text !== "string") return "Falta promo.text";
+    if(typeof obj.promo.buttonText !== "string") return "Falta promo.buttonText";
+    if(typeof obj.promo.waMessage !== "string") return "Falta promo.waMessage";
+  }
+  return "";
+}
+
+function setMode(next){
+  mode = next;
+  document.getElementById("tabSite").classList.toggle("active", mode==="site");
+  document.getElementById("tabProducts").classList.toggle("active", mode==="products");
+  rulesBox.innerHTML = mode==="site"
+    ? "<ul><li><code>businessName</code>, <code>contact</code>, <code>location</code>, <code>hours</code>, <code>payments</code></li><li><code>hours.schedule</code> debe tener claves 0-6</li></ul>"
+    : "<ul><li><code>categories</code> es array</li><li>cada category tiene <code>category</code> y <code>items</code></li><li>cada item tiene <code>name</code>, <code>description</code>, <code>price</code></li></ul>";
+  load();
+}
+
 async function load(){
   hint.textContent = "";
   setStatus(true, "Cargando…");
-  const res = await fetch("/products.json", { cache: "no-store" });
+  const url = mode==="site" ? "/site.json" : "/products.json";
+  const res = await fetch(url, { cache: "no-store" });
   const txt = await res.text();
   editor.value = txt;
+
   try{
     const obj = JSON.parse(txt);
-    const err = validateJson(obj);
+    const err = mode==="site" ? validateSite(obj) : validateProducts(obj);
     if(err) setStatus(false, "JSON válido, pero: " + err);
     else setStatus(true, "OK · JSON válido");
   }catch{
@@ -197,7 +272,7 @@ function format(){
   try{
     const obj = JSON.parse(editor.value);
     editor.value = JSON.stringify(obj, null, 2);
-    const err = validateJson(obj);
+    const err = mode==="site" ? validateSite(obj) : validateProducts(obj);
     if(err) setStatus(false, "JSON válido, pero: " + err);
     else setStatus(true, "OK · Formateado");
   }catch{
@@ -209,19 +284,18 @@ async function save(){
   hint.textContent = "";
   const token = tokenInput.value.trim() || localStorage.getItem(TOKEN_KEY) || "";
   if(!token){ setStatus(false, "Pegá el token para guardar"); return; }
+
   try{
     const obj = JSON.parse(editor.value);
-    const err = validateJson(obj);
+    const err = mode==="site" ? validateSite(obj) : validateProducts(obj);
     if(err){ setStatus(false, "No guardé: " + err); return; }
 
     localStorage.setItem(TOKEN_KEY, token);
 
-    const res = await fetch("/api/products", {
+    const url = mode==="site" ? "/api/site" : "/api/products";
+    const res = await fetch(url, {
       method: "PUT",
-      headers: {
-        "content-type": "application/json",
-        "authorization": "Bearer " + token
-      },
+      headers: { "content-type":"application/json", "authorization":"Bearer " + token },
       body: JSON.stringify(obj)
     });
 
@@ -233,7 +307,7 @@ async function save(){
 
     setStatus(true, "Guardado ✅");
     hint.textContent = "Listo. Refrescá el sitio para ver cambios.";
-  }catch(e){
+  }catch(_e){
     setStatus(false, "No guardé: JSON inválido");
   }
 }
@@ -248,20 +322,13 @@ document.getElementById("btnResetToken").addEventListener("click", () => {
   setStatus(true, "Token borrado del navegador");
 });
 
+document.getElementById("tabSite").addEventListener("click", () => setMode("site"));
+document.getElementById("tabProducts").addEventListener("click", () => setMode("products"));
+
 tokenInput.value = localStorage.getItem(TOKEN_KEY) || "";
 
-editor.addEventListener("input", () => {
-  try{
-    const obj = JSON.parse(editor.value);
-    const err = validateJson(obj);
-    if(err) setStatus(false, "JSON válido, pero: " + err);
-    else setStatus(true, "OK · JSON válido");
-  }catch{
-    setStatus(false, "JSON inválido (no parsea)");
-  }
-});
-
-window.addEventListener("keydown", (e) => {
+// Atajos
+document.addEventListener("keydown", (e) => {
   if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s"){
     e.preventDefault(); save();
   }
@@ -270,7 +337,7 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-load();
+setMode("site");
 </script>
 </body>
 </html>
