@@ -2,250 +2,216 @@
 <html lang="es-AR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin · Sitio completo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin · Sitio y Productos</title>
 
 <style>
-:root{
-  --bg:#0f0f0f;
-  --card:#171717;
-  --border:#2a2a2a;
-  --text:#f2f2f2;
-  --muted:#b8b8b8;
-  --accent:#42d37a;
-  --danger:#ff6b6b;
-  --radius:14px;
-}
-*{box-sizing:border-box}
 body{
   margin:0;
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-  background:var(--bg);
-  color:var(--text);
+  background:#0f0f0f;
+  color:#f2f2f2;
 }
-.wrap{max-width:1100px;margin:0 auto;padding:20px}
-h1{margin:0 0 4px}
-h2{margin:24px 0 10px;font-size:18px}
-.small{font-size:12px;color:var(--muted)}
+.wrap{max-width:1200px;margin:0 auto;padding:20px}
+h1{margin:0}
+.tabs{display:flex;gap:10px;margin:20px 0}
+.tab{
+  padding:10px 14px;
+  border-radius:10px;
+  background:#1c1c1c;
+  border:1px solid #333;
+  cursor:pointer;
+  font-weight:800;
+}
+.tab.active{background:#42d37a;color:#042013}
 .card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
+  background:#171717;
+  border:1px solid #2a2a2a;
+  border-radius:14px;
   padding:16px;
   margin-bottom:16px;
 }
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:900px){.grid{grid-template-columns:1fr}}
-
-label{display:block;font-size:12px;color:var(--muted);margin-top:10px}
+label{font-size:12px;color:#b8b8b8;display:block;margin-top:10px}
 input,textarea{
   width:100%;
   padding:10px;
-  margin-top:4px;
-  border-radius:10px;
-  border:1px solid var(--border);
+  border-radius:8px;
+  border:1px solid #333;
   background:#0b0b0b;
-  color:var(--text);
+  color:#fff;
 }
 textarea{resize:vertical}
-
 button{
-  padding:12px 16px;
-  border-radius:12px;
+  padding:10px 14px;
+  border-radius:10px;
   border:0;
+  background:#42d37a;
+  color:#042013;
   font-weight:900;
   cursor:pointer;
 }
-.primary{background:var(--accent);color:#042013}
-.secondary{background:#2b2b2b;color:var(--text)}
-.status{margin-left:12px;font-size:13px}
-.ok{color:var(--accent)}
-.bad{color:var(--danger)}
-
-.list textarea{min-height:120px;font-family:monospace}
-hr{border:0;border-top:1px solid var(--border);margin:16px 0}
+button.secondary{background:#333;color:#fff}
+.list{margin-top:10px}
+.list-item{
+  border:1px solid #333;
+  border-radius:10px;
+  padding:10px;
+  margin-bottom:10px;
+}
+.hidden{display:none}
+.small{font-size:12px;color:#aaa}
 </style>
 </head>
 
 <body>
 <div class="wrap">
-  <h1>Admin · Sitio</h1>
-  <div class="small">Editá todo el contenido del sitio sin tocar JSON.</div>
+  <h1>Admin</h1>
+  <div class="small">Editar sitio y carta sin tocar JSON</div>
 
-  <!-- TOKEN -->
   <div class="card">
-    <label>Token de administrador</label>
-    <input id="token" type="password" placeholder="Bearer token">
+    <label>Token admin</label>
+    <input id="token" type="password">
   </div>
 
-  <!-- DATOS PRINCIPALES -->
-  <div class="card">
-    <h2>Datos del negocio</h2>
-    <div class="grid">
-      <div>
-        <label>Nombre</label>
-        <input id="businessName">
-      </div>
-      <div>
-        <label>Tagline</label>
-        <input id="tagline">
-      </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('site')">🏠 Sitio</div>
+    <div class="tab" onclick="showTab('products')">☕ Productos</div>
+  </div>
+
+  <!-- ================= SITIO ================= -->
+  <div id="tab-site">
+    <div class="card">
+      <h2>Datos principales</h2>
+      <label>Nombre</label><input id="businessName">
+      <label>Tagline</label><input id="tagline">
+      <label>Título</label><input id="heroTitle">
+      <label>Subtítulo</label><textarea id="heroSubtitle"></textarea>
     </div>
 
-    <label>Título principal</label>
-    <input id="heroTitle">
-
-    <label>Subtítulo (puede tener saltos de línea)</label>
-    <textarea id="heroSubtitle"></textarea>
-  </div>
-
-  <!-- CONTACTO -->
-  <div class="card">
-    <h2>Contacto</h2>
-    <div class="grid">
-      <div>
-        <label>WhatsApp (E164)</label>
-        <input id="whatsapp">
-      </div>
-      <div>
-        <label>Teléfono visible</label>
-        <input id="phoneDisplay">
-      </div>
+    <div class="card">
+      <h2>Contacto</h2>
+      <label>WhatsApp</label><input id="whatsapp">
+      <label>Teléfono visible</label><input id="phone">
+      <label>Instagram</label><input id="instagram">
     </div>
-    <label>Instagram URL</label>
-    <input id="instagramUrl">
+
+    <div class="card">
+      <h2>Ubicación</h2>
+      <label>Dirección</label><input id="address">
+      <label>Maps embed URL</label><input id="mapsEmbed">
+      <label>Maps link</label><input id="mapsLink">
+    </div>
+
+    <div class="card">
+      <h2>Reseñas</h2>
+      <div id="reviews"></div>
+      <button onclick="addReview()">+ Agregar reseña</button>
+    </div>
+
+    <div class="card">
+      <button onclick="saveSite()">Guardar sitio</button>
+      <span id="siteStatus" class="small"></span>
+    </div>
   </div>
 
-  <!-- UBICACIÓN -->
-  <div class="card">
-    <h2>Ubicación</h2>
-    <label>Dirección</label>
-    <input id="addressLine">
+  <!-- ================= PRODUCTS ================= -->
+  <div id="tab-products" class="hidden">
+    <div class="card">
+      <h2>Categorías</h2>
+      <div id="categories"></div>
+      <button onclick="addCategory()">+ Agregar categoría</button>
+    </div>
 
-    <label>Google Maps Embed URL</label>
-    <input id="mapsEmbedUrl">
-
-    <label>Google Maps Link</label>
-    <input id="mapsLinkUrl">
-  </div>
-
-  <!-- HORARIOS -->
-  <div class="card">
-    <h2>Horarios</h2>
-    <label>Resumen</label>
-    <input id="hoursSummary">
-
-    <label>Detalle (uno por línea)</label>
-    <textarea id="hoursLines" placeholder="Lunes a Viernes|08:00 – 20:00"></textarea>
-  </div>
-
-  <!-- PRECIO -->
-  <div class="card">
-    <h2>Precio estimado</h2>
-    <input id="priceRangeLine" placeholder="$$ – $$$">
-  </div>
-
-  <!-- RESEÑAS -->
-  <div class="card list">
-    <h2>Reseñas</h2>
-    <div class="small">Formato: Autor | Texto</div>
-    <textarea id="reviews"></textarea>
-  </div>
-
-  <!-- BOTONES -->
-  <div class="card">
-    <button class="primary" onclick="save()">Guardar cambios</button>
-    <button class="secondary" onclick="load()">Recargar</button>
-    <span id="status" class="status"></span>
+    <div class="card">
+      <button onclick="saveProducts()">Guardar productos</button>
+      <span id="prodStatus" class="small"></span>
+    </div>
   </div>
 </div>
 
 <script>
-async function load(){
-  const res = await fetch("/site.json",{cache:"no-store"});
-  const s = await res.json();
+let SITE={}, PRODUCTS={};
 
-  businessName.value = s.businessName || "";
-  tagline.value = s.tagline || "";
-  heroTitle.value = s.heroTitle || "";
-  heroSubtitle.value = s.heroSubtitle || "";
-
-  whatsapp.value = s.contact?.whatsappNumber || "";
-  phoneDisplay.value = s.contact?.phoneDisplay || "";
-  instagramUrl.value = s.contact?.instagramUrl || "";
-
-  addressLine.value = s.location?.addressLine || "";
-  mapsEmbedUrl.value = s.location?.mapsEmbedUrl || "";
-  mapsLinkUrl.value = s.location?.mapsLinkUrl || "";
-
-  hoursSummary.value = s.hours?.summary || "";
-  hoursLines.value = (s.hours?.lines||[])
-    .map(h=>`${h.label}|${h.value}`).join("\n");
-
-  priceRangeLine.value = s.priceRangeLine || "";
-
-  reviews.value = (s.reviews?.items||[])
-    .map(r=>`${r.author}|${r.text}`).join("\n");
-
-  status.textContent="Datos cargados";
-  status.className="status ok";
+function showTab(t){
+  document.getElementById("tab-site").classList.toggle("hidden",t!=="site");
+  document.getElementById("tab-products").classList.toggle("hidden",t!=="products");
+  document.querySelectorAll(".tab").forEach(el=>el.classList.remove("active"));
+  document.querySelector(".tab[onclick*='"+t+"']").classList.add("active");
 }
 
-async function save(){
-  const tokenVal = token.value.trim();
-  if(!tokenVal){
-    status.textContent="Falta token";
-    status.className="status bad";
-    return;
-  }
+async function load(){
+  SITE = await (await fetch("/site.json",{cache:"no-store"})).json();
+  PRODUCTS = await (await fetch("/products.json",{cache:"no-store"})).json();
 
-  const body = {
-    businessName: businessName.value,
-    tagline: tagline.value,
-    heroTitle: heroTitle.value,
-    heroSubtitle: heroSubtitle.value,
-    contact:{
-      whatsappNumber: whatsapp.value,
-      phoneDisplay: phoneDisplay.value,
-      instagramUrl: instagramUrl.value
-    },
-    location:{
-      addressLine: addressLine.value,
-      mapsEmbedUrl: mapsEmbedUrl.value,
-      mapsLinkUrl: mapsLinkUrl.value
-    },
-    hours:{
-      summary: hoursSummary.value,
-      lines: hoursLines.value.split("\n").filter(Boolean).map(l=>{
-        const [a,b]=l.split("|"); return {label:a||"",value:b||""};
-      }),
-      schedule:{}
-    },
-    priceRangeLine: priceRangeLine.value,
-    reviews:{
-      title:"Reseñas",
-      items: reviews.value.split("\n").filter(Boolean).map(l=>{
-        const [a,b]=l.split("|"); return {author:a||"",text:b||""};
-      })
-    }
-  };
+  businessName.value = SITE.businessName||"";
+  tagline.value = SITE.tagline||"";
+  heroTitle.value = SITE.heroTitle||"";
+  heroSubtitle.value = SITE.heroSubtitle||"";
 
-  const res = await fetch("/api/site",{
-    method:"PUT",
-    headers:{
-      "content-type":"application/json",
-      "authorization":"Bearer "+tokenVal
-    },
-    body: JSON.stringify(body)
+  whatsapp.value = SITE.contact?.whatsappNumber||"";
+  phone.value = SITE.contact?.phoneDisplay||"";
+  instagram.value = SITE.contact?.instagramUrl||"";
+
+  address.value = SITE.location?.addressLine||"";
+  mapsEmbed.value = SITE.location?.mapsEmbedUrl||"";
+  mapsLink.value = SITE.location?.mapsLinkUrl||"";
+
+  renderReviews();
+  renderCategories();
+}
+
+function renderReviews(){
+  const c=document.getElementById("reviews"); c.innerHTML="";
+  (SITE.reviews?.items||[]).forEach((r,i)=>{
+    const d=document.createElement("div"); d.className="list-item";
+    d.innerHTML=`
+      <label>Autor</label><input value="${r.author||""}" onchange="SITE.reviews.items[${i}].author=this.value">
+      <label>Texto</label><textarea onchange="SITE.reviews.items[${i}].text=this.value">${r.text||""}</textarea>
+      <button class="secondary" onclick="SITE.reviews.items.splice(${i},1);renderReviews()">Eliminar</button>`;
+    c.appendChild(d);
   });
+}
 
-  if(res.ok){
-    status.textContent="Guardado correctamente ✅";
-    status.className="status ok";
-  }else{
-    status.textContent="Error al guardar";
-    status.className="status bad";
-  }
+function addReview(){
+  SITE.reviews.items.push({author:"",text:""});
+  renderReviews();
+}
+
+function renderCategories(){
+  const c=document.getElementById("categories"); c.innerHTML="";
+  PRODUCTS.categories.forEach((cat,ci)=>{
+    const d=document.createElement("div"); d.className="list-item";
+    d.innerHTML=`<label>Categoría</label>
+      <input value="${cat.category}" onchange="PRODUCTS.categories[${ci}].category=this.value">`;
+    cat.items.forEach((it,ii)=>{
+      d.innerHTML+=`
+        <div class="list-item">
+          <input placeholder="Nombre" value="${it.name}" onchange="PRODUCTS.categories[${ci}].items[${ii}].name=this.value">
+          <input placeholder="Descripción" value="${it.description}" onchange="PRODUCTS.categories[${ci}].items[${ii}].description=this.value">
+          <input placeholder="Precio" value="${it.price}" onchange="PRODUCTS.categories[${ci}].items[${ii}].price=this.value">
+        </div>`;
+    });
+    d.innerHTML+=`<button onclick="PRODUCTS.categories[${ci}].items.push({name:'',description:'',price:''});renderCategories()">+ Item</button>`;
+    c.appendChild(d);
+  });
+}
+
+async function saveSite(){
+  const t=token.value.trim();
+  const res=await fetch("/api/site",{method:"PUT",headers:{
+    "content-type":"application/json",
+    "authorization":"Bearer "+t
+  },body:JSON.stringify(SITE)});
+  siteStatus.textContent=res.ok?"Guardado ✅":"Error";
+}
+
+async function saveProducts(){
+  const t=token.value.trim();
+  const res=await fetch("/api/products",{method:"PUT",headers:{
+    "content-type":"application/json",
+    "authorization":"Bearer "+t
+  },body:JSON.stringify(PRODUCTS)});
+  prodStatus.textContent=res.ok?"Guardado ✅":"Error";
 }
 
 load();
