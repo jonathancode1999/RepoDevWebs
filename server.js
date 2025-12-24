@@ -11,6 +11,15 @@ const PORT = process.env.PORT || 3000;
 
 // ====== Config ======
 const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
+
+// ====== Auth middleware ======
+function requireAdmin(req, res, next) {
+  if (!ADMIN_TOKEN) return res.status(500).send("Missing ADMIN_TOKEN env var");
+  const auth = (req.headers.authorization || "").trim();
+  if (auth !== `Bearer ${ADMIN_TOKEN}`) return res.status(401).send("Unauthorized");
+  return next();
+}
+
 const DATABASE_URL = (process.env.DATABASE_URL || "").trim();
 
 // Render/managed Postgres typically requires SSL
@@ -190,7 +199,7 @@ app.get("/site.json", async (_req, res) => {
 });
 
 // API: update products
-app.put("/api/products", async (req, res) => {
+app.put("/api/products", requireAdmin, async (req, res) => {
   try {
     if (!ADMIN_TOKEN) return res.status(500).send("Missing ADMIN_TOKEN env var");
     const auth = req.headers.authorization || "";
