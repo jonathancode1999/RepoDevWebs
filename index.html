@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin (Sitio)</title>
+  <meta name="theme-color" content="#0f0f0f" />
+  <style>
+    :root{
+      --bg:#0f0f0f; --text:#f2f2f2; --muted:#b8b8b8;
+      --accent:#d7b07a; --ok:#42d37a; --bad:#ff6b6b;
+      --shadow: 0 10px 30px rgba(0,0,0,.35); --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      background: radial-gradient(1200px 700px at 20% -10%, rgba(215,176,122,.25), transparent 60%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(66,211,122,.12), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      line-height:1.35;
+    }
+    a{color:inherit}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    .card{
+      background: rgba(22,22,22,.78);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      padding:18px;
+    }
+    h1{margin:0 0 6px;font-size:28px;letter-spacing:-.02em}
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      gap:10px;padding:10px 14px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      text-decoration:none;font-weight:850;font-size:14px;
+      transition:.2s ease;white-space:nowrap;
+      color:var(--text); cursor:pointer;
+    }
+    .btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.09)}
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(66,211,122,.95), rgba(66,211,122,.25));
+      color:#0b1510;border-color: rgba(66,211,122,.35);
+    }
+    .btn.danger{border-color:rgba(255,107,107,.25);background:rgba(255,107,107,.10)}
+    textarea{
+      width:100%;
+      min-height: 460px;
+      resize: vertical;
+      border-radius: 16px;
+      padding: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.35;
+      outline: none;
+    }
+    textarea:focus{border-color:rgba(215,176,122,.35)}
+    .grid{display:grid;grid-template-columns: 1fr 360px; gap:12px; margin-top:12px}
+    @media(max-width: 980px){.grid{grid-template-columns:1fr}}
+    .kv{
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      border-radius: 16px;
+      padding:12px;
+      margin-bottom:12px;
+    }
+    .kv .k{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .kv .v{font-weight:800}
+    .status{padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04)}
+    .status.ok{border-color:rgba(66,211,122,.25);background:rgba(66,211,122,.08)}
+    .status.bad{border-color:rgba(255,107,107,.25);background:rgba(255,107,107,.08)}
+    input{
+      width:100%;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      outline:none;
+    }
+    input:focus{border-color:rgba(215,176,122,.35)}
+    .small{font-size:12px;color:var(--muted)}
+    code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.08)}
+    ul{margin:8px 0 0 18px;padding:0}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h1>Admin · Sitio</h1>
+          <div class="muted">Editá y guardá <code>site.json</code> (contenido) y <code>products.json</code> (carta).</div>
+        </div>
+        <div class="row">
+          <a class="btn" href="/" target="_blank" rel="noopener">Abrir sitio</a>
+          <button class="btn" id="btnReload" type="button">Recargar</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <div class="row" style="margin:10px 0">
+            <label class="small" style="display:flex;align-items:center;gap:8px"><span>Editar</span>
+              <select id="which" class="btn" style="padding:8px 10px;border-radius:12px">
+                <option value="site">site.json (sitio)</option>
+                <option value="products">products.json (carta)</option>
+              </select>
+            </label>
+            <button class="btn primary" id="btnSave" type="button">Guardar cambios</button>
+            <button class="btn" id="btnFormat" type="button">Formatear JSON</button>
+            <button class="btn" id="btnNormalize" type="button">Normalizar site</button>
+            <button class="btn danger" id="btnResetToken" type="button">Cambiar token</button>
+            <span class="small" id="hint"></span>
+          </div>
+          <textarea id="editor" spellcheck="false"></textarea>
+        </div>
+
+        <aside>
+          <div class="kv">
+            <div class="k">Token de admin</div>
+            <div class="v">Se guarda en tu navegador</div>
+            <div class="small" style="margin-top:8px">Pegalo una sola vez (Bearer Token). No lo compartas.</div>
+            <div style="margin-top:10px">
+              <input id="token" type="password" placeholder="Pegar token acá…" />
+              <div class="small" style="margin-top:6px">Tip: podés ocultarlo/mostrarlo desde el navegador.</div>
+            </div>
+          </div>
+
+          <div class="kv">
+            <div class="k">Validación rápida</div>
+            <div id="status" class="status">Esperando…</div>
+            <div class="small" style="margin-top:8px">
+              <b>products.json</b>
+              <ul>
+                <li><code>categories</code> es array</li>
+                <li>cada category tiene <code>category</code> y <code>items</code></li>
+                <li>cada item tiene <code>name</code>, <code>description</code>, <code>price</code></li>
+              </ul>
+              <div style="height:10px"></div>
+              <b>site.json</b>
+              <ul>
+                <li>Acepta <i>plano</i> o <i>anidado</i>.</li>
+                <li>Con “Normalizar” lo convierte al formato completo.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="kv">
+            <div class="k">Atajos</div>
+            <div class="small">
+              <b>Ctrl+S</b> guardar · <b>Ctrl+Shift+F</b> formatear
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+<script>
+const TOKEN_KEY = "admin_token_v1";
+
+const editor = document.getElementById("editor");
+const tokenInput = document.getElementById("token");
+const statusBox = document.getElementById("status");
+const hint = document.getElementById("hint");
+const which = document.getElementById("which");
+
+function setStatus(ok, msg){
+  statusBox.className = "status " + (ok ? "ok" : "bad");
+  statusBox.textContent = msg;
+}
+
+function validateProducts(obj){
+  if(!obj || !Array.isArray(obj.categories)) return "Falta categories[]";
+  for(const c of obj.categories){
+    if(!c || typeof c.category !== "string") return "Category inválida (category)";
+    if(!Array.isArray(c.items)) return "Category inválida (items)";
+    for(const it of c.items){
+      if(!it || typeof it.name !== "string") return "Item inválido (name)";
+      if(typeof it.description !== "string") return "Item inválido (description)";
+      if(typeof it.price !== "string") return "Item inválido (price)";
+    }
+  }
+  return "";
+}
+
+function safeStr(v){ return (typeof v === "string") ? v : ""; }
+
+function parseHoursRange(str){
+  const s = safeStr(str).replaceAll("—","-").replaceAll("–","-");
+  const m = s.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+  if(!m) return null;
+  return [m[1], m[2]];
+}
+
+function normalizeSite(raw){
+  const r = raw && typeof raw === "object" ? raw : {};
+  const isNested = !!r.contact || !!r.location || (r.hours && r.hours.schedule);
+
+  if(isNested){
+    // asegurar campos base para que el front no rompa
+    const out = JSON.parse(JSON.stringify(r));
+    out.businessName = safeStr(out.businessName) || "Mi negocio";
+    out.tagline = safeStr(out.tagline);
+    out.heroTitle = safeStr(out.heroTitle) || out.businessName;
+    out.heroSubtitle = safeStr(out.heroSubtitle);
+    out.contact = out.contact || {};
+    out.location = out.location || {};
+    out.hours = out.hours || { summary:"", lines:[], schedule:{} };
+    out.paymentsLine = safeStr(out.paymentsLine);
+    out.priceRangeLine = safeStr(out.priceRangeLine);
+    out.promo = out.promo || { enabled:false, label:"⭐ Promo:", text:"", ctaText:"Pedir por WhatsApp", ctaLink:"" };
+    out.featured = out.featured || { title:"⭐ Destacado del día", text:"" };
+    out.howToOrder = out.howToOrder || { title:"Cómo pedir", subtitle:"", steps:[], ctaText:"" };
+    out.faq = out.faq || { title:"Preguntas frecuentes", items:[] };
+    out.menu = out.menu || { note:"" };
+    out.footer = out.footer || { extra:"" };
+    out.gallery = out.gallery || { note:"" };
+    return out;
+  }
+
+  // PLANO -> completo (anidado)
+  const paymentsLine = Array.isArray(r.payments) ? r.payments.join(" · ") : safeStr(r.paymentsLine);
+  const hoursSummary =
+    (r.hours && typeof r.hours === "object")
+      ? [
+          r.hours.weekdays ? ("Lun–Vie " + r.hours.weekdays) : "",
+          r.hours.saturday ? ("Sáb " + r.hours.saturday) : "",
+          r.hours.sunday ? ("Dom " + r.hours.sunday) : ""
+        ].filter(Boolean).join(" / ")
+      : "";
+
+  const schedule = { "1":[], "2":[], "3":[], "4":[], "5":[], "6":[], "0":[] };
+  if(r.hours && typeof r.hours === "object"){
+    const wk = parseHoursRange(r.hours.weekdays);
+    const sa = parseHoursRange(r.hours.saturday);
+    const su = parseHoursRange(r.hours.sunday);
+    if(wk){ schedule["1"]=[wk]; schedule["2"]=[wk]; schedule["3"]=[wk]; schedule["4"]=[wk]; schedule["5"]=[wk]; }
+    if(sa){ schedule["6"]=[sa]; }
+    if(su){ schedule["0"]=[su]; }
+  }
+
+  const wa = safeStr(r.whatsappE164);
+  const name = safeStr(r.businessName) || "Mi negocio";
+
+  return {
+    businessName: name,
+    tagline: safeStr(r.about) || safeStr(r.businessShort) || "",
+    heroTitle: name,
+    heroSubtitle: safeStr(r.about),
+    badges: [safeStr(r.area)].filter(Boolean),
+    pills: [],
+    promo: {
+      enabled: !!(r.promo && typeof r.promo === "object" ? r.promo.enabled : false),
+      label: "⭐ Promo:",
+      text: safeStr(r.promo && r.promo.text),
+      ctaText: safeStr(r.promo && r.promo.ctaText) || "Pedir por WhatsApp",
+      ctaLink: safeStr(r.promo && (r.promo.ctaHref || r.promo.ctaLink)) || ""
+    },
+    contact: {
+      whatsappNumber: wa,
+      whatsappDefaultText: "Hola " + (safeStr(r.businessShort) || name) + " 😊",
+      phoneDisplay: wa ? ("+" + wa) : "",
+      instagramUrl: safeStr(r.instagramUrl)
+    },
+    location: {
+      addressLine: safeStr(r.addressFull) || safeStr(r.addressShort),
+      mapsLinkUrl: safeStr(r.mapsSearchUrl),
+      mapsEmbedUrl: safeStr(r.mapsEmbedUrl)
+    },
+    hours: {
+      summary: hoursSummary,
+      lines: [
+        r.hours && r.hours.weekdays ? { label:"Lun–Vie", value:safeStr(r.hours.weekdays) } : null,
+        r.hours && r.hours.saturday ? { label:"Sábado", value:safeStr(r.hours.saturday) } : null,
+        r.hours && r.hours.sunday ? { label:"Domingo", value:safeStr(r.hours.sunday) } : null
+      ].filter(Boolean),
+      schedule
+    },
+    paymentsLine: paymentsLine || "",
+    priceRangeLine: safeStr(r.priceRangeLine) || "—",
+    featured: { title:"⭐ Destacado del día", text:"Consultá opciones del día por WhatsApp" },
+    howToOrder: {
+      title:"Cómo pedir",
+      subtitle:"Elegí, escribinos por WhatsApp y coordinamos.",
+      steps:[
+        { title:"Elegí", text:"Mirá la carta y armá tu pedido." },
+        { title:"Escribinos", text:"Mandalo por WhatsApp con tu nombre/mesa." },
+        { title:"Confirmá", text:"Te confirmamos tiempos y opciones." }
+      ],
+      ctaText:"Hola! Quiero hacer un pedido 😊"
+    },
+    faq: {
+      title:"Preguntas frecuentes",
+      items:[
+        { q:"¿Hacen take away?", a:"Sí, podés pedir para llevar." },
+        { q:"¿Medios de pago?", a: paymentsLine || "Consultanos por WhatsApp." },
+        { q:"¿Horarios?", a: hoursSummary || "Consultanos por WhatsApp." }
+      ]
+    },
+    menu: { note:"Precios sujetos a cambios." },
+    footer: { extra: safeStr(r.area) ? ("Atendemos en " + safeStr(r.area)) : "" },
+    gallery: { note:"" }
+  };
+}
+
+function validateSite(obj){
+  if(!obj || typeof obj !== "object") return "Body debe ser un objeto JSON";
+
+  // acepta plano o anidado: si es plano, lo normalizamos para validar “fuerte”
+  const normalized = normalizeSite(obj);
+
+  const reqStr = (v, name) => (typeof v === "string" && v.trim() ? "" : ("Falta " + name));
+  let err = reqStr(normalized.businessName, "businessName"); if(err) return err;
+  err = reqStr(normalized.heroTitle, "heroTitle"); if(err) return err;
+  err = reqStr(normalized.heroSubtitle, "heroSubtitle"); if(err) return err;
+
+  if(!normalized.contact || typeof normalized.contact !== "object") return "Falta contact";
+  err = reqStr(normalized.contact.whatsappNumber, "contact.whatsappNumber"); if(err) return err;
+
+  if(!normalized.location || typeof normalized.location !== "object") return "Falta location";
+  err = reqStr(normalized.location.addressLine, "location.addressLine"); if(err) return err;
+
+  if(!normalized.hours || typeof normalized.hours !== "object") return "Falta hours";
+  if(!Array.isArray(normalized.hours.lines)) return "Falta hours.lines[]";
+  if(!normalized.hours.schedule || typeof normalized.hours.schedule !== "object") return "Falta hours.schedule";
+
+  return "";
+}
+
+function validateCurrent(obj){
+  return (which.value === "site") ? validateSite(obj) : validateProducts(obj);
+}
+
+function currentPaths(){
+  if(which.value === "site") return { get: "/site.json", put: "/api/site", label: "site.json" };
+  return { get: "/products.json", put: "/api/products", label: "products.json" };
+}
+
+async function load(){
+  hint.textContent = "";
+  const p = currentPaths();
+  setStatus(true, "Cargando…");
+  const res = await fetch(p.get, { cache: "no-store" });
+  const txt = await res.text();
+  editor.value = txt;
+
+  try{
+    const obj = JSON.parse(txt);
+    const err = validateCurrent(obj);
+    if(err) setStatus(false, "JSON válido, pero: " + err);
+    else setStatus(true, "OK · " + p.label);
+  }catch{
+    setStatus(false, "JSON inválido (no parsea)");
+  }
+}
+
+function format(){
+  try{
+    const obj = JSON.parse(editor.value);
+    editor.value = JSON.stringify(obj, null, 2);
+    const err = validateCurrent(obj);
+    if(err) setStatus(false, "JSON válido, pero: " + err);
+    else setStatus(true, "OK · Formateado");
+  }catch{
+    setStatus(false, "No se puede formatear: JSON inválido");
+  }
+}
+
+function normalizeInEditor(){
+  try{
+    const obj = JSON.parse(editor.value);
+    if(which.value !== "site"){
+      setStatus(false, "Normalizar aplica solo a site.json");
+      return;
+    }
+    const n = normalizeSite(obj);
+    editor.value = JSON.stringify(n, null, 2);
+    const err = validateSite(n);
+    if(err) setStatus(false, "Normalizado, pero: " + err);
+    else setStatus(true, "OK · site normalizado");
+  }catch{
+    setStatus(false, "No se puede normalizar: JSON inválido");
+  }
+}
+
+async function save(){
+  hint.textContent = "";
+  const p = currentPaths();
+  const token = tokenInput.value.trim() || localStorage.getItem(TOKEN_KEY) || "";
+  if(!token){ setStatus(false, "Pegá el token para guardar"); return; }
+
+  try{
+    let obj = JSON.parse(editor.value);
+
+    // si es site, lo guardamos normalizado (así el front siempre tiene todo)
+    if(which.value === "site"){
+      obj = normalizeSite(obj);
+      editor.value = JSON.stringify(obj, null, 2);
+    }
+
+    const err = validateCurrent(obj);
+    if(err){ setStatus(false, "No guardé: " + err); return; }
+
+    localStorage.setItem(TOKEN_KEY, token);
+
+    const res = await fetch(p.put, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        "authorization": "Bearer " + token
+      },
+      body: JSON.stringify(obj)
+    });
+
+    if(!res.ok){
+      const t = await res.text();
+      setStatus(false, "Error al guardar ("+res.status+"): " + t);
+      return;
+    }
+
+    setStatus(true, "Guardado ✅ (" + p.label + ")");
+    hint.textContent = "Listo. Refrescá el sitio para ver cambios.";
+  }catch{
+    setStatus(false, "No guardé: JSON inválido");
+  }
+}
+
+document.getElementById("btnReload").addEventListener("click", load);
+document.getElementById("btnFormat").addEventListener("click", format);
+document.getElementById("btnSave").addEventListener("click", save);
+document.getElementById("btnNormalize").addEventListener("click", normalizeInEditor);
+
+which.addEventListener("change", load);
+
+document.getElementById("btnResetToken").addEventListener("click", () => {
+  localStorage.removeItem(TOKEN_KEY);
+  tokenInput.value = "";
+  setStatus(true, "Token borrado (local)");
+});
+
+window.addEventListener("keydown", (e) => {
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s"){
+    e.preventDefault(); save();
+  }
+  if((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f"){
+    e.preventDefault(); format();
+  }
+});
+
+(function init(){
+  const saved = localStorage.getItem(TOKEN_KEY) || "";
+  if(saved) tokenInput.value = saved;
+  load();
+})();
+</script>
+
+</body>
+</html>
