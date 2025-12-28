@@ -1,150 +1,124 @@
-// server.js
-const express = require("express");
-const path = require("path");
-const fs = require("fs");
+import express from "express";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import pg from "pg";
 
-const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
 
-// Setealo por env para no hardcodear:
-// Windows (cmd): set ADMIN_TOKEN=TU_TOKEN && node server.js
-// PowerShell: $env:ADMIN_TOKEN="TU_TOKEN"; node server.js
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "CAMBIAME_ESTE_TOKEN";
+// ====== Config ======
+const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
+const DATABASE_URL = (process.env.DATABASE_URL || "").trim();
 
-const ROOT = __dirname;
-const PUBLIC_DIR = path.join(ROOT, "public");
+// Render/managed Postgres typically requires SSL
+const pool = new pg.Pool({
+  connectionString: DATABASE_URL,
+  ssl: DATABASE_URL ? { rejectUnauthorized: false } : undefined,
+});
 
-const SITE_JSON = path.join(PUBLIC_DIR, "site.json");
-const PRODUCTS_JSON = path.join(PUBLIC_DIR, "products.json");
-
-const SITE_SEED = path.join(ROOT, "site.seed.json");         // (si existe)
-const PRODUCTS_SEED = path.join(ROOT, "products.seed.json"); // (existe en tu estructura)
-
-// ---------- helpers ----------
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+// ====== DB helpers ======
+async function ensureTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS kv_store (
+      key TEXT PRIMARY KEY,
+      value JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
 }
 
-function writePrettyJson(filePath, obj) {
-  fs.writeFileSync(filePath, JSON.stringify(obj, null, 2), "utf8");
+async function getProductsFromDb() {
+  const r = await pool.query(`SELECT value FROM kv_store WHERE key='products' LIMIT 1;`);
+  return r.rows?.[0]?.value ?? null;
 }
 
-function ensureFileFromSeed(targetPath, seedPath, fallbackObj) {
-  if (fs.existsSync(targetPath)) return;
+async function upsertProductsToDb(obj) {
+  await pool.query(
+    `INSERT INTO kv_store (key, value) VALUES ('products', $1)
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();`,
+    [obj]
+  );
+}
 
-  try {
-    if (seedPath && fs.existsSync(seedPath)) {
-      const seed = readJson(seedPath);
-      writePrettyJson(targetPath, seed);
-      console.log("Created", path.relative(ROOT, targetPath), "from", path.relative(ROOT, seedPath));
-      return;
+// ====== Validation ======
+function validateProductsSchema(obj) {
+  if (!obj || typeof obj !== "object") return "Body must be a JSON object";
+  if (!Array.isArray(obj.categories)) return "Invalid schema: categories[]";
+  for (const c of obj.categories) {
+    if (!c || typeof c.category !== "string") return "Invalid schema: category.category";
+    if (!Array.isArray(c.items)) return "Invalid schema: category.items[]";
+    for (const it of c.items) {
+      if (!it || typeof it.name !== "string") return "Invalid schema: item.name";
+      if (typeof it.description !== "string") return "Invalid schema: item.description";
+      if (typeof it.price !== "string") return "Invalid schema: item.price";
     }
-  } catch (e) {
-    console.warn("Seed read error:", seedPath, e.message);
   }
-
-  writePrettyJson(targetPath, fallbackObj);
-  console.log("Created", path.relative(ROOT, targetPath), "from fallback object");
+  return "";
 }
 
-function auth(req, res, next) {
-  const h = req.headers["authorization"] || "";
-  const m = String(h).match(/^Bearer\s+(.+)$/i);
-  const token = m ? m[1].trim() : "";
-  if (!token) return res.status(401).send("Missing Bearer token");
-  if (token !== ADMIN_TOKEN) return res.status(403).send("Invalid token");
-  return next();
+// Seed from local file (first deploy)
+async function seedIfEmpty() {
+  const current = await getProductsFromDb();
+  if (current) return;
+  const seedPath = path.join(__dirname, "products.seed.json");
+  try {
+    const raw = fs.readFileSync(seedPath, "utf-8");
+    const obj = JSON.parse(raw);
+    const err = validateProductsSchema(obj);
+    if (err) throw new Error(err);
+    await upsertProductsToDb(obj);
+    console.log("Seeded products from products.seed.json");
+  } catch (e) {
+    console.warn("Could not seed products:", e?.message || e);
+  }
 }
 
-// ---------- bootstrap (create missing json from seeds) ----------
-ensureFileFromSeed(
-  SITE_JSON,
-  SITE_SEED,
-  {
-    area: "Quilmes",
-    about: "Café de especialidad · pastelería · sandwiches.",
-    hours: { sunday: "Cerrado", saturday: "09:00–21:00", weekdays: "08:00–20:00" },
-    promo: {
-      text: "Promo: 2x1 en espresso de 08:00 a 10:00",
-      ctaHref: "",
-      ctaText: "Reservar por WhatsApp",
-      enabled: false
-    },
-    logoUrl: "",
-    payments: ["Efectivo", "Débito", "Crédito", "Mercado Pago"],
-    addressFull: "San Martín 780, Quilmes, Provincia de Buenos Aires.",
-    addressShort: "San Martín 780, Quilmes (B1878)",
-    businessName: "Voltri Café de Especialidad",
-    businessShort: "Voltri",
-    instagramUrl: "https://www.instagram.com/",
-    mapsEmbedUrl: "",
-    mapsSearchUrl: "https://www.google.com/maps/search/?api=1&query=San+Martin+780,+Quilmes",
-    whatsappE164: "5491100000000"
-  }
-);
+// ====== App ======
+const app = express();
+app.use(express.json({ limit: "512kb" }));
 
-ensureFileFromSeed(
-  PRODUCTS_JSON,
-  PRODUCTS_SEED,
-  { categories: [] }
-);
+// serve static
+app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"] }));
 
-// ---------- middleware ----------
-app.use(express.json({ limit: "2mb" }));
-
-// Static serving for your structure: /, /admin, /img/*, logo.jpg, etc.
-app.use(
-  express.static(PUBLIC_DIR, {
-    etag: false,
-    lastModified: false,
-    setHeaders(res) {
-      res.setHeader("Cache-Control", "no-store");
-    },
-    extensions: ["html"]
-  })
-);
-
-// ---------- API ----------
-app.put("/api/site", auth, (req, res) => {
-  const body = req.body;
-  if (!body || typeof body !== "object") return res.status(400).send("Body must be JSON object");
+// API: get products.json
+app.get("/products.json", async (_req, res) => {
   try {
-    writePrettyJson(SITE_JSON, body);
-    return res.status(200).send("OK");
-  } catch (e) {
-    return res.status(500).send("Write error: " + e.message);
+    const obj = await getProductsFromDb();
+    res.setHeader("content-type", "application/json; charset=utf-8");
+    res.setHeader("cache-control", "no-store");
+    res.status(200).send(JSON.stringify(obj ?? { business: "Voltri", currency: "ARS", categories: [] }, null, 2));
+  } catch (_e) {
+    res.status(500).send("DB error");
   }
 });
 
-app.put("/api/products", auth, (req, res) => {
-  const body = req.body;
-  if (!body || typeof body !== "object") return res.status(400).send("Body must be JSON object");
+// API: update products
+app.put("/api/products", async (req, res) => {
   try {
-    writePrettyJson(PRODUCTS_JSON, body);
-    return res.status(200).send("OK");
-  } catch (e) {
-    return res.status(500).send("Write error: " + e.message);
+    if (!ADMIN_TOKEN) return res.status(500).send("Missing ADMIN_TOKEN env var");
+    const auth = req.headers.authorization || "";
+    if (auth !== `Bearer ${ADMIN_TOKEN}`) return res.status(401).send("Unauthorized");
+
+    const err = validateProductsSchema(req.body);
+    if (err) return res.status(400).send(err);
+
+    await upsertProductsToDb(req.body);
+    res.status(200).send("OK");
+  } catch (_e) {
+    res.status(500).send("DB error");
   }
 });
 
-// ---------- routes ----------
-app.get("/admin", (req, res) => {
-  // sirve public/admin/index.html
-  res.sendFile(path.join(PUBLIC_DIR, "admin", "index.html"));
+// Convenience route
+app.get("/admin", (_req, res) => {
+  res.redirect("/admin/");
 });
 
-// Fallback: si no encontró archivo estático, devolvemos la home
-// (te permite rutas tipo /#seccion, o links "bonitos" si agregás)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, "index.html"));
-});
-
-// ---------- start ----------
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log("Public dir:", path.relative(ROOT, PUBLIC_DIR));
-  console.log("site.json:", path.relative(ROOT, SITE_JSON));
-  console.log("products.json:", path.relative(ROOT, PRODUCTS_JSON));
-  console.log("ADMIN_TOKEN:", ADMIN_TOKEN === "CAMBIAME_ESTE_TOKEN" ? "(default - CHANGE IT!)" : "(set via env)");
+app.listen(PORT, async () => {
+  await ensureTable();
+  await seedIfEmpty();
+  console.log(`Server running on :${PORT}`);
 });
