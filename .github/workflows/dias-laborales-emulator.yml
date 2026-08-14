@@ -3,7 +3,7 @@ name: Test Dias Laborales 2.0.2 Emulator
 on:
   push:
     branches:
-      - dias-laborales-apk-build-20260814
+      - dias-laborales-emulator-20260814
   workflow_dispatch:
 
 permissions:
@@ -13,15 +13,9 @@ permissions:
 jobs:
   emulator-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
 
       - name: Download verified APK artifact
         shell: bash
@@ -37,50 +31,40 @@ jobs:
           unzip -q /tmp/apk-artifact.zip -d /tmp/apk
           test -s /tmp/apk/DiasLaborales-2.0.2.apk
 
-      - name: Install Android 35 emulator image
-        shell: bash
-        run: |
-          set -euxo pipefail
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
-          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
-            --force --name diasTest --package "system-images;android-35;google_apis;x86_64" --device "pixel_6"
-
-      - name: Boot emulator and launch APK
-        shell: bash
-        run: |
-          set -euxo pipefail
-          ADB="$ANDROID_HOME/platform-tools/adb"
-          test -x "$ADB"
-          "$ANDROID_HOME/emulator/emulator" -avd diasTest -no-window -noaudio -no-boot-anim -no-snapshot -gpu swiftshader_indirect >/tmp/emulator.log 2>&1 &
-          "$ADB" wait-for-device
-          timeout 240 bash -c 'ADB="$ANDROID_HOME/platform-tools/adb"; until [ "$($ADB shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 3; done'
-          "$ADB" install -r /tmp/apk/DiasLaborales-2.0.2.apk
-          "$ADB" logcat -c
-          "$ADB" shell am start -W -n com.lyjdesarrollos.diaslaborales/.MainActivity
-          sleep 8
-          "$ADB" shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | tee /tmp/activity.txt
-          "$ADB" exec-out screencap -p > /tmp/dias-screen.png
-          "$ADB" shell uiautomator dump /sdcard/window.xml || true
-          "$ADB" pull /sdcard/window.xml /tmp/window.xml || true
-          "$ADB" logcat -d -t 1200 > /tmp/logcat.txt
-          ! grep -q 'FATAL EXCEPTION' /tmp/logcat.txt
-          if [ -f /tmp/window.xml ]; then
-            ! grep -q 'Iniciando' /tmp/window.xml || (echo 'Startup guard sigue visible' && exit 1)
-          fi
-          grep -q 'com.lyjdesarrollos.diaslaborales' /tmp/activity.txt
+      - name: Launch APK on Android 35 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            set -euxo pipefail
+            adb install -r /tmp/apk/DiasLaborales-2.0.2.apk
+            adb logcat -c
+            adb shell am start -W -n com.lyjdesarrollos.diaslaborales/.MainActivity
+            sleep 8
+            adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | tee /tmp/activity.txt
+            adb exec-out screencap -p > /tmp/dias-screen.png
+            adb shell uiautomator dump /sdcard/window.xml || true
+            adb pull /sdcard/window.xml /tmp/window.xml || true
+            adb logcat -d -t 1500 > /tmp/logcat.txt
+            ! grep -q 'FATAL EXCEPTION' /tmp/logcat.txt
+            grep -q 'com.lyjdesarrollos.diaslaborales' /tmp/activity.txt
+            if [ -f /tmp/window.xml ]; then
+              ! grep -q 'Iniciando' /tmp/window.xml || (echo 'ERROR: startup guard sigue visible' && exit 1)
+            fi
 
       - name: Upload emulator evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: DiasLaborales-2.0.2-emulator
+          name: DiasLaborales-2.0.2-emulator-evidence
           path: |
             /tmp/dias-screen.png
             /tmp/window.xml
             /tmp/logcat.txt
             /tmp/activity.txt
-            /tmp/emulator.log
           if-no-files-found: warn
           retention-days: 7
