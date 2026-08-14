@@ -1,4 +1,4 @@
-name: Test Dias Laborales 2.0.2 Emulator
+name: Test Dias Laborales 2.0.3 Emulator
 
 on:
   push:
@@ -13,11 +13,11 @@ permissions:
 jobs:
   emulator-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download verified APK artifact
+      - name: Download APK 2.0.3
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -26,22 +26,24 @@ jobs:
           curl -fL \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${{ github.repository }}/actions/artifacts/9230761585/zip \
+            https://api.github.com/repos/${{ github.repository }}/actions/artifacts/9232217852/zip \
             -o /tmp/apk-artifact.zip
           unzip -q /tmp/apk-artifact.zip -d /tmp/apk
-          test -s /tmp/apk/DiasLaborales-2.0.2.apk
+          test -s /tmp/apk/DiasLaborales-2.0.3.apk
 
-      - name: Launch APK on Android 35 emulator
+      - name: Launch APK on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 29
           target: google_apis
           arch: x86_64
-          profile: pixel_6
+          profile: pixel_2
+          disable-linux-hw-accel: true
           disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: |
             set -euxo pipefail
-            adb install -r /tmp/apk/DiasLaborales-2.0.2.apk
+            adb install -r /tmp/apk/DiasLaborales-2.0.3.apk
             adb logcat -c
             adb shell am start -W -n com.lyjdesarrollos.diaslaborales/.MainActivity
             sleep 8
@@ -49,18 +51,22 @@ jobs:
             adb exec-out screencap -p > /tmp/dias-screen.png
             adb shell uiautomator dump /sdcard/window.xml || true
             adb pull /sdcard/window.xml /tmp/window.xml || true
-            adb logcat -d -t 1500 > /tmp/logcat.txt
+            adb logcat -d -t 2000 > /tmp/logcat.txt
             ! grep -q 'FATAL EXCEPTION' /tmp/logcat.txt
+            ! grep -q 'Preferences.then' /tmp/logcat.txt
+            ! grep -q 'LocalNotifications.then' /tmp/logcat.txt
+            ! grep -q 'App.then' /tmp/logcat.txt
             grep -q 'com.lyjdesarrollos.diaslaborales' /tmp/activity.txt
             if [ -f /tmp/window.xml ]; then
-              ! grep -q 'Iniciando' /tmp/window.xml || (echo 'ERROR: startup guard sigue visible' && exit 1)
+              ! grep -q 'No se pudo completar el inicio' /tmp/window.xml
+              ! grep -q 'Iniciando' /tmp/window.xml
             fi
 
       - name: Upload emulator evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: DiasLaborales-2.0.2-emulator-evidence
+          name: DiasLaborales-2.0.3-emulator-evidence
           path: |
             /tmp/dias-screen.png
             /tmp/window.xml
