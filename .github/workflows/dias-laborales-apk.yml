@@ -18,11 +18,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reconstruct Dias Laborales source
+      - name: Reconstruct and verify Dias Laborales source
         shell: bash
         run: |
           set -euxo pipefail
-          cat dias-laborales-build/source.b64.part* | base64 -d > /tmp/DiasLaborales_BuildSource.zip
+          cat \
+            dias-laborales-build/source.b64.part00 \
+            dias-laborales-build/source.b64.part01 \
+            dias-laborales-build/source.b64.part02 \
+            dias-laborales-build/source.fix.part03a \
+            dias-laborales-build/source.fix.part03b \
+            dias-laborales-build/source.b64.part04 \
+            dias-laborales-build/source.fix.part05a \
+            dias-laborales-build/source.fix.part05b \
+            dias-laborales-build/source.b64.part06 \
+            dias-laborales-build/source.b64.part07 \
+            > /tmp/source.b64
+          test "$(wc -c < /tmp/source.b64)" -eq 79184
+          base64 -d /tmp/source.b64 > /tmp/DiasLaborales_BuildSource.zip
+          echo '6b345b07867e0b7e2b9c447adcad149257b01696abae01f4b412a72383b3678d  /tmp/DiasLaborales_BuildSource.zip' | sha256sum -c -
           unzip -t /tmp/DiasLaborales_BuildSource.zip
           mkdir -p /tmp/dias-laborales
           unzip -q /tmp/DiasLaborales_BuildSource.zip -d /tmp/dias-laborales
@@ -45,7 +59,6 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          echo "ANDROID_HOME=$ANDROID_HOME"
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           if [ ! -x "$SDKMANAGER" ]; then
             SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
@@ -59,15 +72,13 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Install JavaScript dependencies
+      - name: Install dependencies
         working-directory: /tmp/dias-laborales
-        shell: bash
         run: |
-          set -euxo pipefail
           rm -f package-lock.json
           npm install
 
-      - name: Run automated tests
+      - name: Run 16 automated tests
         working-directory: /tmp/dias-laborales
         run: npm test
 
@@ -81,10 +92,7 @@ jobs:
 
       - name: Build installable debug APK
         working-directory: /tmp/dias-laborales/android
-        shell: bash
-        run: |
-          set -euxo pipefail
-          gradle assembleDebug --stacktrace
+        run: gradle assembleDebug --stacktrace
 
       - name: Verify APK exists and is signed
         shell: bash
