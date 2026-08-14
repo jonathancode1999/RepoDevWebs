@@ -1,0 +1,312 @@
+name: Build Dias Laborales APK 2.0.3
+
+on:
+  push:
+    branches:
+      - dias-laborales-apk-build-20260814
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct verified source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat \
+            dias-laborales-build/source.b64.part00 \
+            dias-laborales-build/source.b64.part01 \
+            dias-laborales-build/source.b64.part02 \
+            dias-laborales-build/source.fix.part03a \
+            dias-laborales-build/source.fix.part03b \
+            dias-laborales-build/source.b64.part04 \
+            dias-laborales-build/source.fix.part05a \
+            dias-laborales-build/source.fix.part05b \
+            dias-laborales-build/source.fix.part06a2 \
+            dias-laborales-build/source.fix.part06b2 \
+            dias-laborales-build/source.b64.part07 \
+            > /tmp/source.b64
+          test "$(wc -c < /tmp/source.b64)" -eq 79184
+          base64 -d /tmp/source.b64 > /tmp/DiasLaborales_source.zip
+          echo '6b345b07867e0b7e2b9c447adcad149257b01696abae01f4b412a72383b3678d  /tmp/DiasLaborales_source.zip' | sha256sum -c -
+          rm -rf /tmp/dias-laborales
+          mkdir -p /tmp/dias-laborales
+          unzip -q /tmp/DiasLaborales_source.zip -d /tmp/dias-laborales
+
+      - name: Apply WebView startup fixes and Capacitor proxy fix
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat > vite.config.js <<'EOF'
+          import { defineConfig } from 'vite';
+          export default defineConfig({ base: './' });
+          EOF
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+          base = Path('/tmp/dias-laborales')
+
+          pkg_path = base / 'package.json'
+          pkg = json.loads(pkg_path.read_text())
+          pkg['version'] = '2.0.3'
+          pkg.setdefault('devDependencies', {})['typescript'] = '^5.9.2'
+          pkg_path.write_text(json.dumps(pkg, ensure_ascii=False, indent=2) + '\n')
+
+          gradle = base / 'android/app/build.gradle'
+          g = gradle.read_text()
+          g = re.sub(r'versionCode\s+\d+', 'versionCode 4', g)
+          g = re.sub(r'versionName\s+"[^"]+"', 'versionName "2.0.3"', g)
+          gradle.write_text(g)
+
+          index = base / 'index.html'
+          html = index.read_text()
+          guard = '''<div id="startup-guard" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#07162f;color:#fff;font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:28px"><div><b style="font-size:22px">Días Laborales</b><br><span id="startup-message" style="opacity:.72">Iniciando…</span><p id="startup-error" style="display:none;max-width:320px;margin:16px auto 0;font-size:13px;line-height:1.45;color:#dbeafe"></p></div></div>
+          <script>
+          (()=>{const fail=(m)=>{const g=document.getElementById('startup-guard');if(!g)return;const s=document.getElementById('startup-message'),d=document.getElementById('startup-error');if(s)s.textContent='No se pudo completar el inicio';if(d){d.style.display='block';d.textContent=String(m||'Error desconocido')}};window.__diasLaboralesStartupError=fail;window.addEventListener('error',e=>fail(e.error?.message||e.message));window.addEventListener('unhandledrejection',e=>fail(e.reason?.message||e.reason));setTimeout(()=>{if(document.getElementById('startup-guard'))fail('El inicio tardó más de 10 segundos.')},10000)})();
+          </script>'''
+          if 'id="startup-guard"' not in html:
+              html = html.replace('<body class="theme-dark">', '<body class="theme-dark">\n' + guard)
+          index.write_text(html)
+
+          main_path = base / 'src/main.js'
+          main = main_path.read_text()
+          import_marker = "import { askConfirmation, showToast } from './ui/feedback.js';\n"
+          helpers = '''\nfunction hideStartupGuard() {\n  const guard = document.getElementById('startup-guard');\n  if (!guard) return;\n  guard.style.opacity = '0';\n  guard.style.transition = 'opacity 140ms ease';\n  window.setTimeout(() => guard.remove(), 160);\n}\n\nfunction reportStartupFailure(error) {\n  console.error('Error fatal al iniciar Días Laborales:', error);\n  const message = error?.message || String(error || 'Error desconocido');\n  if (typeof window.__diasLaboralesStartupError === 'function') { window.__diasLaboralesStartupError(message); return; }\n  document.body.textContent = `No se pudo iniciar Días Laborales: ${message}`;\n}\n\n'''
+          if 'function hideStartupGuard()' not in main:
+              main = main.replace(import_marker, import_marker + helpers)
+
+          old_boot = '''async function bootstrap() {\n  seedDemoIfRequested();\n  state = await loadState();\n  applyTheme(state.theme, true);\n  bindGlobalEvents();\n  await setupAndroidLifecycle();\n  appReady = true;\n\n  if (!state.configured) {\n    showOnboarding();\n  } else {\n    showApp();\n    renderEverything();\n    refreshPermissionUi();\n    refreshBuildModeUi();\n    applyDemoViewIfRequested();\n    scheduleRefresh('startup');\n  }\n\n  consumePendingNotificationAction(handleNotificationAction);\n  if (queuedNotificationPayload) {\n    const payload = queuedNotificationPayload;\n    queuedNotificationPayload = null;\n    handleNotificationAction(payload);\n  }\n}\n'''
+          new_boot = '''async function bootstrap() {\n  seedDemoIfRequested();\n  state = await loadState();\n  applyTheme(state.theme, true);\n  bindGlobalEvents();\n  setupAndroidLifecycle().catch(error => console.error('No se pudo iniciar el lifecycle Android:', error));\n  appReady = true;\n\n  if (!state.configured) {\n    showOnboarding();\n  } else {\n    showApp();\n    renderEverything();\n    refreshPermissionUi().catch(error => console.error('No se pudo consultar permisos al iniciar:', error));\n    refreshBuildModeUi().catch(error => console.error('No se pudo consultar el modo de build:', error));\n    applyDemoViewIfRequested();\n    scheduleRefresh('startup');\n  }\n\n  hideStartupGuard();\n  consumePendingNotificationAction(handleNotificationAction);\n  if (queuedNotificationPayload) {\n    const payload = queuedNotificationPayload;\n    queuedNotificationPayload = null;\n    handleNotificationAction(payload);\n  }\n}\n'''
+          if old_boot in main:
+              main = main.replace(old_boot, new_boot)
+          elif 'hideStartupGuard();' not in main:
+              raise SystemExit('No se pudo parchear bootstrap')
+
+          old_tail = '''document.addEventListener('DOMContentLoaded', () => {\n  bootstrap().catch(error => {\n    console.error('Error fatal al iniciar Días Laborales:', error);\n    document.body.innerHTML = '<main style="padding:24px;font-family:sans-serif"><h1>No se pudo iniciar Días Laborales</h1><p>Cerrá y volvé a abrir la aplicación. Si el problema continúa, reinstalá la versión más reciente.</p></main>';\n  });\n});\n'''
+          new_tail = '''document.addEventListener('DOMContentLoaded', () => {\n  bootstrap().catch(reportStartupFailure);\n});\n'''
+          if old_tail in main:
+              main = main.replace(old_tail, new_tail)
+          main_path.write_text(main)
+          PY
+
+          cat > src/services/native.js <<'EOF'
+          let modulesPromise = null;
+
+          export function isNativeAndroid() {
+            return Boolean(window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === 'android');
+          }
+
+          async function loadModules() {
+            if (!modulesPromise) {
+              modulesPromise = Promise.all([
+                import('@capacitor/local-notifications').catch(() => null),
+                import('@capacitor/preferences').catch(() => null),
+                import('@capacitor/app').catch(() => null),
+                import('@capacitor/status-bar').catch(() => null),
+                import('@capacitor/core').catch(() => null)
+              ]).then(([notifications, preferences, app, statusBar, core]) => ({ notifications, preferences, app, statusBar, core }));
+            }
+            return modulesPromise;
+          }
+
+          // Capacitor plugins are Proxy objects. Returning one directly from an async
+          // function makes Promise resolution read `.then`, which Capacitor interprets
+          // as a native method call (Preferences.then(), App.then(), etc.).
+          export function createPluginFacade(plugin, methodNames) {
+            if (!plugin) return null;
+            const facade = Object.create(null);
+            for (const methodName of methodNames) {
+              facade[methodName] = (...args) => plugin[methodName](...args);
+            }
+            return Object.freeze(facade);
+          }
+
+          export async function getLocalNotifications() {
+            if (!isNativeAndroid()) return null;
+            const modules = await loadModules();
+            return createPluginFacade(modules.notifications?.LocalNotifications, [
+              'addListener', 'createChannel', 'checkPermissions', 'requestPermissions',
+              'checkExactNotificationSetting', 'changeExactNotificationSetting',
+              'getPending', 'cancel', 'schedule'
+            ]);
+          }
+
+          export async function getPreferences() {
+            if (!isNativeAndroid()) return null;
+            const modules = await loadModules();
+            return createPluginFacade(modules.preferences?.Preferences, ['get', 'set', 'remove']);
+          }
+
+          export async function getAppPlugin() {
+            if (!isNativeAndroid()) return null;
+            const modules = await loadModules();
+            return createPluginFacade(modules.app?.App, ['addListener', 'exitApp']);
+          }
+
+          export async function applyNativeStatusBar(theme) {
+            if (!isNativeAndroid()) return;
+            try {
+              const modules = await loadModules();
+              const StatusBar = modules.statusBar?.StatusBar;
+              const Style = modules.statusBar?.Style;
+              if (!StatusBar || !Style) return;
+              await StatusBar.setOverlaysWebView({ overlay: false });
+              await StatusBar.setBackgroundColor({ color: theme === 'light' ? '#F4F7FB' : '#07162F' });
+              await StatusBar.setStyle({ style: theme === 'light' ? Style.Dark : Style.Light });
+            } catch (error) { console.error('No se pudo actualizar la barra de estado:', error); }
+          }
+
+          export async function getNativeBuildInfo() {
+            if (!isNativeAndroid()) return { debug: false, native: false };
+            try {
+              const modules = await loadModules();
+              const registerPlugin = modules.core?.registerPlugin;
+              if (!registerPlugin) return { debug: false, native: true };
+              const AndroidSettings = registerPlugin('AndroidSettings');
+              const result = await AndroidSettings.getBuildInfo();
+              return { ...result, native: true };
+            } catch (error) {
+              console.error('No se pudo consultar el tipo de build Android:', error);
+              return { debug: false, native: true, error: true };
+            }
+          }
+
+          export async function openNativeAppSettings() {
+            if (!isNativeAndroid()) return false;
+            try {
+              const modules = await loadModules();
+              const registerPlugin = modules.core?.registerPlugin;
+              if (!registerPlugin) return false;
+              const AndroidSettings = registerPlugin('AndroidSettings');
+              await AndroidSettings.openAppSettings();
+              return true;
+            } catch (error) {
+              console.error('No se pudieron abrir los ajustes de Android:', error);
+              return false;
+            }
+          }
+          EOF
+
+          cat > tests/nativeFacade.test.js <<'EOF'
+          import test from 'node:test';
+          import assert from 'node:assert/strict';
+          import { createPluginFacade } from '../src/services/native.js';
+
+          test('plugin facade is not thenable and never invokes native then()', async () => {
+            const calls = [];
+            const nativeProxy = new Proxy({}, {
+              get(_target, prop) {
+                if (prop === 'then') throw new Error('native then() must never be read');
+                return (...args) => { calls.push([prop, args]); return Promise.resolve({ ok: true }); };
+              }
+            });
+            const facade = createPluginFacade(nativeProxy, ['get', 'set']);
+            assert.equal(facade.then, undefined);
+            const resolved = await Promise.resolve(facade);
+            assert.equal(resolved, facade);
+            await resolved.get({ key: 'x' });
+            assert.deepEqual(calls, [['get', [{ key: 'x' }]]]);
+          });
+          EOF
+
+          node --check src/main.js
+          node --check src/services/native.js
+          ! grep -q 'return modules.preferences?.Preferences' src/services/native.js
+          ! grep -q 'return modules.notifications?.LocalNotifications' src/services/native.js
+          ! grep -q 'return modules.app?.App' src/services/native.js
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Android SDK 35
+        shell: bash
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Setup Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Install, run 17 tests and build web
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -f package-lock.json
+          npm install
+          npm test | tee /tmp/tests.log
+          grep -q '# pass 17' /tmp/tests.log
+          grep -q '# fail 0' /tmp/tests.log
+          npm run build
+          grep -q 'src="./assets/' dist/index.html
+          grep -q 'href="./assets/' dist/index.html
+
+      - name: Browser startup smoke test
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 -m http.server 4173 --directory dist >/tmp/http.log 2>&1 &
+          HTTP_PID=$!
+          trap 'kill $HTTP_PID || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=4000 --dump-dom http://127.0.0.1:4173 > /tmp/dom.html
+          grep -q 'id="onboarding"' /tmp/dom.html
+          ! grep -q 'id="startup-guard"' /tmp/dom.html
+
+      - name: Sync Capacitor Android
+        working-directory: /tmp/dias-laborales
+        run: npx cap sync android
+
+      - name: Assemble APK
+        working-directory: /tmp/dias-laborales/android
+        run: gradle assembleDebug --stacktrace
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          APK=/tmp/dias-laborales/android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          cp "$APK" /tmp/DiasLaborales-2.0.3.apk
+          unzip -p "$APK" assets/public/index.html > /tmp/apk-index.html
+          grep -q 'src="./assets/' /tmp/apk-index.html
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/apksigner.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee /tmp/apk-badging.txt
+          grep -q "versionName='2.0.3-debug'" /tmp/apk-badging.txt
+          sha256sum /tmp/DiasLaborales-2.0.3.apk | tee /tmp/DiasLaborales-2.0.3.sha256
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiasLaborales-2.0.3
+          path: |
+            /tmp/DiasLaborales-2.0.3.apk
+            /tmp/DiasLaborales-2.0.3.sha256
+            /tmp/apksigner.txt
+            /tmp/apk-badging.txt
+          if-no-files-found: error
+          retention-days: 7
