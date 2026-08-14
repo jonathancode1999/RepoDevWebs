@@ -80,6 +80,7 @@ jobs:
         run: |
           rm -f package-lock.json
           npm install
+          npm install -D typescript@^5.9.2
 
       - name: Run 16 automated tests
         working-directory: /tmp/dias-laborales
