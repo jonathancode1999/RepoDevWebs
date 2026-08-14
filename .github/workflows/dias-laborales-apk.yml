@@ -1,4 +1,4 @@
-name: Build Dias Laborales APK
+name: Build Dias Laborales APK 2.0.2
 
 on:
   push:
@@ -18,12 +18,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reconstruct and verify Dias Laborales source
+      - name: Reconstruct verified source
         shell: bash
         run: |
           set -euxo pipefail
-          echo '784522bc09a3c8737282a1c7b315071eba7aaa442de9f405bd9683de5d2178ea  dias-laborales-build/source.fix.part06a2' | sha256sum -c -
-          echo '01f5dbc8ac1b5f7b2afbe58d9e778530e9d10aaac47d4fb0f55cb932009e02cd  dias-laborales-build/source.fix.part06b2' | sha256sum -c -
           cat \
             dias-laborales-build/source.b64.part00 \
             dias-laborales-build/source.b64.part01 \
@@ -38,14 +36,71 @@ jobs:
             dias-laborales-build/source.b64.part07 \
             > /tmp/source.b64
           test "$(wc -c < /tmp/source.b64)" -eq 79184
-          base64 -d /tmp/source.b64 > /tmp/DiasLaborales_BuildSource.zip
-          echo '6b345b07867e0b7e2b9c447adcad149257b01696abae01f4b412a72383b3678d  /tmp/DiasLaborales_BuildSource.zip' | sha256sum -c -
-          unzip -t /tmp/DiasLaborales_BuildSource.zip
+          base64 -d /tmp/source.b64 > /tmp/DiasLaborales_source.zip
+          echo '6b345b07867e0b7e2b9c447adcad149257b01696abae01f4b412a72383b3678d  /tmp/DiasLaborales_source.zip' | sha256sum -c -
+          rm -rf /tmp/dias-laborales
           mkdir -p /tmp/dias-laborales
-          unzip -q /tmp/DiasLaborales_BuildSource.zip -d /tmp/dias-laborales
-          test -f /tmp/dias-laborales/package.json
-          test -f /tmp/dias-laborales/android/app/build.gradle
-          test -f /tmp/dias-laborales/tests/schedule.test.js
+          unzip -q /tmp/DiasLaborales_source.zip -d /tmp/dias-laborales
+
+      - name: Apply startup and WebView fixes
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat > vite.config.js <<'EOF'
+          import { defineConfig } from 'vite';
+          export default defineConfig({ base: './' });
+          EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          base = Path('/tmp/dias-laborales')
+
+          pkg_path = base / 'package.json'
+          pkg = json.loads(pkg_path.read_text())
+          pkg['version'] = '2.0.2'
+          pkg.setdefault('devDependencies', {})['typescript'] = '^5.9.2'
+          pkg_path.write_text(json.dumps(pkg, ensure_ascii=False, indent=2) + '\n')
+
+          gradle = base / 'android/app/build.gradle'
+          g = gradle.read_text()
+          g = re.sub(r'versionCode\s+2', 'versionCode 3', g)
+          g = re.sub(r'versionName\s+"2\.0\.0"', 'versionName "2.0.2"', g)
+          gradle.write_text(g)
+
+          index = base / 'index.html'
+          html = index.read_text()
+          guard = '''<div id="startup-guard" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#07162f;color:#fff;font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:28px"><div><b style="font-size:22px">Días Laborales</b><br><span id="startup-message" style="opacity:.72">Iniciando…</span><p id="startup-error" style="display:none;max-width:320px;margin:16px auto 0;font-size:13px;line-height:1.45;color:#dbeafe"></p></div></div>
+          <script>
+          (()=>{const fail=(m)=>{const g=document.getElementById('startup-guard');if(!g)return;const s=document.getElementById('startup-message'),d=document.getElementById('startup-error');if(s)s.textContent='No se pudo completar el inicio';if(d){d.style.display='block';d.textContent=String(m||'Error desconocido')}};window.__diasLaboralesStartupError=fail;window.addEventListener('error',e=>fail(e.error?.message||e.message));window.addEventListener('unhandledrejection',e=>fail(e.reason?.message||e.reason));setTimeout(()=>{if(document.getElementById('startup-guard'))fail('El inicio tardó más de 10 segundos.')},10000)})();
+          </script>'''
+          if 'id="startup-guard"' not in html:
+              html = html.replace('<body class="theme-dark">', '<body class="theme-dark">\n' + guard)
+          index.write_text(html)
+
+          main_path = base / 'src/main.js'
+          main = main_path.read_text()
+          import_marker = "import { askConfirmation, showToast } from './ui/feedback.js';\n"
+          helpers = '''\nfunction hideStartupGuard() {\n  const guard = document.getElementById('startup-guard');\n  if (!guard) return;\n  guard.style.opacity = '0';\n  guard.style.transition = 'opacity 140ms ease';\n  window.setTimeout(() => guard.remove(), 160);\n}\n\nfunction reportStartupFailure(error) {\n  console.error('Error fatal al iniciar Días Laborales:', error);\n  const message = error?.message || String(error || 'Error desconocido');\n  if (typeof window.__diasLaboralesStartupError === 'function') {\n    window.__diasLaboralesStartupError(message);\n    return;\n  }\n  document.body.textContent = `No se pudo iniciar Días Laborales: ${message}`;\n}\n\n'''
+          if 'function hideStartupGuard()' not in main:
+              main = main.replace(import_marker, import_marker + helpers)
+
+          old_boot = '''async function bootstrap() {\n  seedDemoIfRequested();\n  state = await loadState();\n  applyTheme(state.theme, true);\n  bindGlobalEvents();\n  await setupAndroidLifecycle();\n  appReady = true;\n\n  if (!state.configured) {\n    showOnboarding();\n  } else {\n    showApp();\n    renderEverything();\n    refreshPermissionUi();\n    refreshBuildModeUi();\n    applyDemoViewIfRequested();\n    scheduleRefresh('startup');\n  }\n\n  consumePendingNotificationAction(handleNotificationAction);\n  if (queuedNotificationPayload) {\n    const payload = queuedNotificationPayload;\n    queuedNotificationPayload = null;\n    handleNotificationAction(payload);\n  }\n}\n'''
+          new_boot = '''async function bootstrap() {\n  seedDemoIfRequested();\n  state = await loadState();\n  applyTheme(state.theme, true);\n  bindGlobalEvents();\n  setupAndroidLifecycle().catch(error => console.error('No se pudo iniciar el lifecycle Android:', error));\n  appReady = true;\n\n  if (!state.configured) {\n    showOnboarding();\n  } else {\n    showApp();\n    renderEverything();\n    refreshPermissionUi().catch(error => console.error('No se pudo consultar permisos al iniciar:', error));\n    refreshBuildModeUi().catch(error => console.error('No se pudo consultar el modo de build:', error));\n    applyDemoViewIfRequested();\n    scheduleRefresh('startup');\n  }\n\n  hideStartupGuard();\n  consumePendingNotificationAction(handleNotificationAction);\n  if (queuedNotificationPayload) {\n    const payload = queuedNotificationPayload;\n    queuedNotificationPayload = null;\n    handleNotificationAction(payload);\n  }\n}\n'''
+          if old_boot not in main:
+              raise SystemExit('No se encontró bootstrap original')
+          main = main.replace(old_boot, new_boot)
+
+          old_tail = '''document.addEventListener('DOMContentLoaded', () => {\n  bootstrap().catch(error => {\n    console.error('Error fatal al iniciar Días Laborales:', error);\n    document.body.innerHTML = '<main style="padding:24px;font-family:sans-serif"><h1>No se pudo iniciar Días Laborales</h1><p>Cerrá y volvé a abrir la aplicación. Si el problema continúa, reinstalá la versión más reciente.</p></main>';\n  });\n});\n'''
+          new_tail = '''document.addEventListener('DOMContentLoaded', () => {\n  bootstrap().catch(reportStartupFailure);\n});\n'''
+          if old_tail not in main:
+              raise SystemExit('No se encontró arranque original')
+          main_path.write_text(main.replace(old_tail, new_tail))
+          PY
+          node --check src/main.js
+          grep -q 'hideStartupGuard' src/main.js
+          grep -q 'startup-guard' index.html
 
       - name: Setup Node 22
         uses: actions/setup-node@v4
@@ -58,15 +113,10 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Ensure Android SDK 35
+      - name: Android SDK 35
         shell: bash
         run: |
-          set -euxo pipefail
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -x "$SDKMANAGER" ]; then
-            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
-          fi
-          test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
@@ -75,50 +125,68 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Install dependencies
+      - name: Install, test and build web
         working-directory: /tmp/dias-laborales
+        shell: bash
         run: |
           rm -f package-lock.json
           npm install
+          npm test
+          npm run build
+          grep -q 'src="./assets/' dist/index.html
+          grep -q 'href="./assets/' dist/index.html
+          grep -q 'startup-guard' dist/index.html
+          grep -R -q 'startup-guard' dist/assets/*.js
 
-      - name: Run 16 automated tests
+      - name: Browser startup smoke test
         working-directory: /tmp/dias-laborales
-        run: npm test
-
-      - name: Build Vite application
-        working-directory: /tmp/dias-laborales
-        run: npm run build
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 -m http.server 4173 --directory dist >/tmp/http.log 2>&1 &
+          HTTP_PID=$!
+          trap 'kill $HTTP_PID || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME"
+          "$CHROME" --headless --no-sandbox --disable-gpu --virtual-time-budget=4000 --dump-dom http://127.0.0.1:4173 > /tmp/dom.html
+          grep -q 'id="onboarding"' /tmp/dom.html
+          if grep -q 'id="startup-guard"' /tmp/dom.html; then
+            echo 'ERROR: startup guard sigue presente después del arranque JS'
+            exit 1
+          fi
 
       - name: Sync Capacitor Android
         working-directory: /tmp/dias-laborales
         run: npx cap sync android
 
-      - name: Build installable debug APK
+      - name: Assemble APK
         working-directory: /tmp/dias-laborales/android
         run: gradle assembleDebug --stacktrace
 
-      - name: Verify APK exists and is signed
+      - name: Verify final APK contents and signature
         shell: bash
         run: |
           set -euxo pipefail
           APK=/tmp/dias-laborales/android/app/build/outputs/apk/debug/app-debug.apk
           test -s "$APK"
-          cp "$APK" /tmp/DiasLaborales.apk
-          sha256sum /tmp/DiasLaborales.apk | tee /tmp/DiasLaborales.sha256
-          unzip -t /tmp/DiasLaborales.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/DiasLaborales.apk | tee /tmp/apksigner.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales.apk | tee /tmp/apk-badging.txt
-          cp /tmp/dias-laborales/package-lock.json /tmp/package-lock.json
+          cp "$APK" /tmp/DiasLaborales-2.0.2.apk
+          unzip -p "$APK" assets/public/index.html > /tmp/apk-index.html
+          grep -q 'src="./assets/' /tmp/apk-index.html
+          grep -q 'startup-guard' /tmp/apk-index.html
+          unzip -l "$APK" | grep 'assets/public/assets/.*\.js'
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/apksigner.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee /tmp/apk-badging.txt
+          sha256sum /tmp/DiasLaborales-2.0.2.apk | tee /tmp/DiasLaborales-2.0.2.sha256
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DiasLaborales-build
+          name: DiasLaborales-2.0.2
           path: |
-            /tmp/DiasLaborales.apk
-            /tmp/DiasLaborales.sha256
+            /tmp/DiasLaborales-2.0.2.apk
+            /tmp/DiasLaborales-2.0.2.sha256
             /tmp/apksigner.txt
             /tmp/apk-badging.txt
-            /tmp/package-lock.json
           if-no-files-found: error
           retention-days: 7
