@@ -51,20 +51,24 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          test -x "$ADB"
           "$ANDROID_HOME/emulator/emulator" -avd diasTest -no-window -noaudio -no-boot-anim -no-snapshot -gpu swiftshader_indirect >/tmp/emulator.log 2>&1 &
-          adb wait-for-device
-          timeout 240 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 3; done'
-          adb install -r /tmp/apk/DiasLaborales-2.0.2.apk
-          adb logcat -c
-          adb shell am start -W -n com.lyjdesarrollos.diaslaborales/.MainActivity
+          "$ADB" wait-for-device
+          timeout 240 bash -c 'ADB="$ANDROID_HOME/platform-tools/adb"; until [ "$($ADB shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 3; done'
+          "$ADB" install -r /tmp/apk/DiasLaborales-2.0.2.apk
+          "$ADB" logcat -c
+          "$ADB" shell am start -W -n com.lyjdesarrollos.diaslaborales/.MainActivity
           sleep 8
-          adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | tee /tmp/activity.txt
-          adb exec-out screencap -p > /tmp/dias-screen.png
-          adb shell uiautomator dump /sdcard/window.xml || true
-          adb pull /sdcard/window.xml /tmp/window.xml || true
-          adb logcat -d -t 1200 > /tmp/logcat.txt
+          "$ADB" shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | tee /tmp/activity.txt
+          "$ADB" exec-out screencap -p > /tmp/dias-screen.png
+          "$ADB" shell uiautomator dump /sdcard/window.xml || true
+          "$ADB" pull /sdcard/window.xml /tmp/window.xml || true
+          "$ADB" logcat -d -t 1200 > /tmp/logcat.txt
           ! grep -q 'FATAL EXCEPTION' /tmp/logcat.txt
-          ! grep -q 'Iniciando' /tmp/window.xml || (echo 'Startup guard sigue visible' && exit 1)
+          if [ -f /tmp/window.xml ]; then
+            ! grep -q 'Iniciando' /tmp/window.xml || (echo 'Startup guard sigue visible' && exit 1)
+          fi
           grep -q 'com.lyjdesarrollos.diaslaborales' /tmp/activity.txt
 
       - name: Upload emulator evidence
