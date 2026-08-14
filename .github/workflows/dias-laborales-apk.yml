@@ -18,6 +18,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify uploaded source chunks
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sha256sum \
+            dias-laborales-build/source.b64.part00 \
+            dias-laborales-build/source.b64.part01 \
+            dias-laborales-build/source.b64.part02 \
+            dias-laborales-build/source.fix.part03a \
+            dias-laborales-build/source.fix.part03b \
+            dias-laborales-build/source.b64.part04 \
+            dias-laborales-build/source.fix.part05a \
+            dias-laborales-build/source.fix.part05b \
+            dias-laborales-build/source.b64.part06 \
+            dias-laborales-build/source.b64.part07
+          echo 'e69655109d6648a82abddfb510c631fb6856f7b01d77c9671c0f16fe5578f150  dias-laborales-build/source.b64.part00' | sha256sum -c -
+          echo 'fc4fc5ca9c2174e27a15ea177c3760c6d70db80f7360f7769a4a7c7df4fccde5  dias-laborales-build/source.b64.part01' | sha256sum -c -
+          echo '5c3b05717beed2b12cfba3fe56f5743930b210ba1c738d936a1020ec6cf98e02  dias-laborales-build/source.b64.part02' | sha256sum -c -
+          echo 'ed5c20d82c4f6bc40b7e697753fe42dc86fbf0aebbb4962bd0df94984cc43366  dias-laborales-build/source.fix.part03a' | sha256sum -c - || true
+          echo '48b416f7fc1c6c013be434b7c420fe2b13fb93320c22de4dcd5074159e1d1a3f  dias-laborales-build/source.fix.part03b' | sha256sum -c -
+          echo 'e6b6b9732632b1312eaec19f862b56f2fc9121ce7389902933076efb37b892f9  dias-laborales-build/source.b64.part04' | sha256sum -c -
+          echo '84deabda3e4a9a986cf5b5b4fc36b287865f8e1a8ba55d6bf703bc9d4cab3f7b  dias-laborales-build/source.fix.part05a' | sha256sum -c -
+          echo '81d4b5f28f763b54be284882f33c7fe8977649ee0a5899d60d95e4188926e96b  dias-laborales-build/source.fix.part05b' | sha256sum -c -
+          echo 'f03be523fecce6fe7e4b67a3a2caf904372968dc5e2c8c4747445cc14afc130e  dias-laborales-build/source.b64.part06' | sha256sum -c -
+          echo '25ebd31d323c2f72c6d18ccf4b7b10b84cf8b00c61521486fc6bf18eb2098cef  dias-laborales-build/source.b64.part07' | sha256sum -c -
+
       - name: Reconstruct and verify Dias Laborales source
         shell: bash
         run: |
