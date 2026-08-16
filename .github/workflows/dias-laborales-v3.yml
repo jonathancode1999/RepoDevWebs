@@ -22,10 +22,15 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+          echo '744822ceed6e2beecee4fb749086e429320a5d053181a3f8d7a9b6eabe4768c7  dias-laborales-v3/source.part02a' | sha256sum -c -
+          echo '8393962693434d8b7de93d303d6fc05a16fb5d39183e37546afb8aef949a44ec  dias-laborales-v3/source.part02b' | sha256sum -c -
+          echo '046db8e3412f737c09ce92c1ebce53a3d7e0e6ea8968f72ed71b0f1a22163611  dias-laborales-v3/source.part10a' | sha256sum -c -
+          echo 'd1b6b274acf68f22561c6639e6d454ae3d530c98aca29034db12cd2a25ba871e  dias-laborales-v3/source.part10b' | sha256sum -c -
           cat \
             dias-laborales-v3/source.part00 \
             dias-laborales-v3/source.part01 \
-            dias-laborales-v3/source.part02 \
+            dias-laborales-v3/source.part02a \
+            dias-laborales-v3/source.part02b \
             dias-laborales-v3/source.part03 \
             dias-laborales-v3/source.part04 \
             dias-laborales-v3/source.part05 \
@@ -33,7 +38,8 @@ jobs:
             dias-laborales-v3/source.part07 \
             dias-laborales-v3/source.part08 \
             dias-laborales-v3/source.part09 \
-            dias-laborales-v3/source.part10 \
+            dias-laborales-v3/source.part10a \
+            dias-laborales-v3/source.part10b \
             dias-laborales-v3/source.part11 \
             > /tmp/source.b64
           test "$(wc -c < /tmp/source.b64)" -eq 79320
