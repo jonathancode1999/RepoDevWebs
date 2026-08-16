@@ -1,0 +1,33 @@
+name: Export Dias Laborales 3.0.1 source
+
+on:
+  push:
+    branches: [dias-laborales-v3-build-20260815]
+
+permissions:
+  contents: read
+
+jobs:
+  export-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat dias-laborales-v3/source.part00 dias-laborales-v3/source.part01 dias-laborales-v3/source.part02a dias-laborales-v3/source.part02b dias-laborales-v3/source.part03 dias-laborales-v3/source.part04 dias-laborales-v3/source.part05 dias-laborales-v3/source.part06 dias-laborales-v3/source.part07 dias-laborales-v3/source.part08 dias-laborales-v3/source.part09 > /tmp/pre.b64
+          base64 -d /tmp/pre.b64 > /tmp/pre.bin
+          cat dias-laborales-v3/c10b0.bin dias-laborales-v3/c10b1.bin dias-laborales-v3/c10b2.bin dias-laborales-v3/c10b3.bin dias-laborales-v3/c10b4.bin dias-laborales-v3/c10b5.bin dias-laborales-v3/c10b6.bin > /tmp/c10.bin
+          base64 -d dias-laborales-v3/source.part11 > /tmp/post.bin
+          cat /tmp/pre.bin /tmp/c10.bin /tmp/post.bin > /tmp/DiasLaborales_v3.tar.xz
+          mkdir -p /tmp/dias-laborales
+          tar -xJf /tmp/DiasLaborales_v3.tar.xz -C /tmp/dias-laborales
+          cd /tmp/dias-laborales
+          patch -p2 < "$GITHUB_WORKSPACE/dias-laborales-v3/v301-safe-boot.patch"
+          tar -czf /tmp/DiasLaborales-3.0.1-source.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DiasLaborales-3.0.1-SOURCE
+          path: /tmp/DiasLaborales-3.0.1-source.tar.gz
+          retention-days: 1
