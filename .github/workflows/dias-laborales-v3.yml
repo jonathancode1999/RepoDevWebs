@@ -33,11 +33,9 @@ jobs:
           echo 'ebef5a4ed5650162f35154c31cd83752ea134803b598d8299b5100d74965ed23  dias-laborales-v3/source.part07' | sha256sum -c -
           echo '273c87feee8c4c4a9ec7733d792b5e2dfd3aaad2bc732222c020e3734bad28ac  dias-laborales-v3/source.part08' | sha256sum -c -
           echo 'd9756b43870235afdddf075cb6b5ff7ff20bfec84f0fbb7cde83e42c68efafeb  dias-laborales-v3/source.part09' | sha256sum -c -
-          echo '54ff43dd55595cd11b2fff7b974b3f26142862cf4afdffbbe357b64dd712f5b9  dias-laborales-v3/source.part10q0' | sha256sum -c -
-          echo '68ca31f9ea1ee35feac9e22b6f5c14fdbb7735e6de3c88cb8b7568fa7196df68  dias-laborales-v3/source.part10q1' | sha256sum -c -
-          echo 'e0bef7ad14bb674367d64f8d54d6e83e8fc6fcbb8991123907a6c6c1f7461681  dias-laborales-v3/source.part10q2' | sha256sum -c -
-          echo '9728821eb78bc4c01f9100c242d28ded55ea802dc3be1e4fc87ef353a169d61a  dias-laborales-v3/source.part10q3' | sha256sum -c -
+          echo '31cd9086df53538d8456aaf9d6965744321834e41595a9be7c3fd1f996da9ded  dias-laborales-v3/source.part10.bin' | sha256sum -c -
           echo '3872ea5a455797442945091e23bb9ca430f0982b089285105058b3baa767c30c  dias-laborales-v3/source.part11' | sha256sum -c -
+
           cat \
             dias-laborales-v3/source.part00 \
             dias-laborales-v3/source.part01 \
@@ -50,15 +48,18 @@ jobs:
             dias-laborales-v3/source.part07 \
             dias-laborales-v3/source.part08 \
             dias-laborales-v3/source.part09 \
-            dias-laborales-v3/source.part10q0 \
-            dias-laborales-v3/source.part10q1 \
-            dias-laborales-v3/source.part10q2 \
-            dias-laborales-v3/source.part10q3 \
-            dias-laborales-v3/source.part11 \
-            > /tmp/source.b64
-          test "$(wc -c < /tmp/source.b64)" -eq 79320
-          base64 -d /tmp/source.b64 > /tmp/DiasLaborales_v3.tar.xz
+            > /tmp/pre.b64
+          test "$(wc -c < /tmp/pre.b64)" -eq 70000
+          base64 -d /tmp/pre.b64 > /tmp/pre.bin
+          test "$(wc -c < /tmp/pre.bin)" -eq 52500
+
+          base64 -d dias-laborales-v3/source.part11 > /tmp/post.bin
+          test "$(wc -c < /tmp/post.bin)" -eq 1738
+
+          cat /tmp/pre.bin dias-laborales-v3/source.part10.bin /tmp/post.bin > /tmp/DiasLaborales_v3.tar.xz
+          test "$(wc -c < /tmp/DiasLaborales_v3.tar.xz)" -eq 59488
           echo '1bef0afa3277f83b8fddedf5bf608d2455e55428cd32654159424039301dc57d  /tmp/DiasLaborales_v3.tar.xz' | sha256sum -c -
+
           rm -rf /tmp/dias-laborales
           mkdir -p /tmp/dias-laborales
           tar -xJf /tmp/DiasLaborales_v3.tar.xz -C /tmp/dias-laborales
