@@ -63,7 +63,7 @@ jobs:
           grep -q 'src="./assets/' dist/index.html
           grep -R -q 'Próximo aviso' dist
           grep -R -q 'Nueva anotación' dist
-          grep -R -q 'Probar notificación' dist
+          grep -R -q 'Probar aviso' dist
 
       - name: Capture UI evidence
         continue-on-error: true
