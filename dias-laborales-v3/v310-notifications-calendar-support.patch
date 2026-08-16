@@ -1,0 +1,423 @@
+diff -ruN '--exclude=DiasLaborales-3.0.1-source.tar.gz' dl301src/android/app/build.gradle dl310src/android/app/build.gradle
+--- dl301src/android/app/build.gradle	2026-08-16 06:02:24.000000000 +0000
++++ dl310src/android/app/build.gradle	2026-08-16 06:26:55.912626179 +0000
+@@ -8,8 +8,8 @@
+         applicationId "com.lyjdesarrollos.diaslaborales"
+         minSdkVersion rootProject.ext.minSdkVersion
+         targetSdkVersion rootProject.ext.targetSdkVersion
+-        versionCode 7
+-        versionName "3.0.1"
++        versionCode 8
++        versionName "3.1.0"
+         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+         aaptOptions {
+             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+diff -ruN '--exclude=DiasLaborales-3.0.1-source.tar.gz' dl301src/index.html dl310src/index.html
+--- dl301src/index.html	2026-08-16 06:02:24.000000000 +0000
++++ dl310src/index.html	2026-08-16 06:35:05.264724109 +0000
+@@ -178,6 +178,19 @@
+             </div>
+             <button id="delete-data" class="danger-link" type="button">Borrar todos los datos</button>
+           </section>
++
++          <section class="settings-section support-section" aria-labelledby="support-title">
++            <div class="support-copy">
++              <p class="section-kicker">COLABORAR</p>
++              <h2 id="support-title">Ayudá a mejorar Días Laborales</h2>
++              <p>Si la app te resulta útil y querés dar una mano, podés colaborar de forma totalmente voluntaria. Lo recibido se usa para seguir corrigiendo errores y sumando mejoras.</p>
++            </div>
++            <button id="open-support" class="support-button" type="button">
++              <span class="support-button-icon" aria-hidden="true">♡</span>
++              <span><strong>Quiero colaborar</strong><small>Ver QR de Naranja</small></span>
++              <span class="chevron" aria-hidden="true">›</span>
++            </button>
++          </section>
+         </section>
+       </main>
+ 
+@@ -266,6 +279,22 @@
+       </form>
+     </dialog>
+ 
++
++    <dialog id="support-dialog" class="support-dialog">
++      <div class="support-card">
++        <button class="support-close" type="button" data-close-dialog="support-dialog" aria-label="Cerrar">×</button>
++        <div class="support-heart" aria-hidden="true">♡</div>
++        <p class="section-kicker">GRACIAS POR DAR UNA MANO</p>
++        <h2>Colaborar con Días Laborales</h2>
++        <p class="support-description">No es obligatorio ni cambia ninguna función de la app. Si querés colaborar, escaneá este QR con Naranja o con una app compatible.</p>
++        <div class="support-qr-wrap">
++          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAmIAAAJiAQAAAABMLZNLAAAFcUlEQVR42u2dQW4rOQxEiyMDWcrAP4CP0r7BHMnIzbqPkgN8QF4akMFZSKIoe5vFmCgvgtjdeYvI1WSJlCSK33sd/+A3X6SRRhpppJFGGmmkkUba/4Em/XUCDjkBuPcPcIgIgKe97bfI9e7vkytHgbQYtE1VVQsgt/IUHGdAdySVW0kqck6qqqpNFTetAPAUAPMCR4G0z6ahfZW3AmArqX+ptwKoFkD3rNqUsmf7ymdVVa1QbX+Rxi0cBdKC0XTPqnJFUrn99FQIuIvo3m54ilzvX9ozI/7fSIsYF3TPtaVM4/GvPlbsLqFKyrhAWkBaVu0P/fuX4hAR3ZsjwJCGCeJbThA5TzFVjgJpYWiHiIicAbmNCCG3ny8d00UnAEgjbypdFXK1CSaOAmmfTju1Z7v7JD/aJKoCD9HjnADkChyXh+hxqe2t4v4UICtHgbRgfmFYgJH91+YNXvyC8xWqqroj6byPfoG0AFow09C8QddC0hYDtKAHB6tDjM+6x6Z3Ji2IFuZTvk8mmU/ezVmbIGZpodnmVoygFkgLooViEcIV0vyMq5NLn3RKFkRMTBwF0j5eCy3nL4DuufYfXQa9Fu2SomYa9D15ohZIi+Cdq2VLs7cCpopxtVXiypJauascBdJi5EjdG9RFAYt9ePEL82bGBdLixIWlBW8ri2O2qDFnmaZLcG+pBdI+XwtAsh+wpGjkQ/3JX1vTnn87ihHUAmlxvHPS/kW3C7v15plB6D65jCkkZM6pkhZOC/D1ZKtA90lUu7oD3Sr06kNys6vUAmmfTGv9SAIAelwqBEgVx78PUdzPgk0Bxf1P7e13+e8JxxWix6WesJU/APJf9uaRFscv5AqXKM0a8+5+6OvrZcUD4wJpAXKkVRCjxWhOnS7LQK1zD3O9M7VAWiDvPBzzKBm0qxYhnJEYBnrW2qgF0qLkSNvotJultxENzEXbFNKURu/m4zwSaYHiwggEfrpoNm5jSAPTNJQFw7hAWhjvbEXlMjKjl2qzCw6WLbFPlbSYfmFzX+/ajbG7MPv1lpqDp3AUSPt4LfjHf8+HlhklCx1jHgmY6xfoF0gLpYXqP9vhVzSPj9PakuEdBv0CaWH8wjAD0xP3du08Z019v57bZlLpF0gLGhfS2qDXZTD0MZ31WA7HujNpobxzXiZWMeoGbvnz7GJ9rTlwXRtpgXKkbS24WQNSdwTW1q3rtOtqvqkF0iL4hTxWI9iqnlloXmSQlg3q3VYA1AJpQbyzd8JdFUMaY0/tnjK5XfX2abmpBdKC+IWRCr3tm2c5kpbkGpBcOU7nlpIcBdI+Xgt2msLIh5bG1NmkvY0IMdTjdwGgFkiL4J3Ho957Z8D91m62/ZHc6oaNcYG0SHFB5/4vuqxLmHNLtn2kCxjrX1ALpAXwC80sz12GZwJUnWN+3xFjPd6Qo0BaDO/s9kcqgC8jZFsBar+59lau8SQtnHdWf2wh3JmES0+q21bYrDS1QFoU7zxrCetRO717O88t6OuyK5LNMtEvkBYmR0rr2s3kplPdyTvuQKtlh0lqgbQwOdJ72uNmitrrZavhMitx7FMlLRJtdBcdZ0CuAHCc1/Od7yeIXIaROC4PaRcO+VKOAmlBaNJfp7FezVr1jkuXAbby7IfdfssJcvv5Ghf0wT0kSQvjnV3HUR6HMAC+eLCcO2IlZ+6DQVo4LZhV8CfZvu2zPXu2nV+wNIpaIC2UFrxtTlaQnofY+q2R/G/UAmnxaElFLhVAfoiLBsf5KXKFmYbzU5pIvkXoF0iL6hdcC3eeq958QXqpQzBHIi2OFiwkuKaLaZZtm7CXfqRx2iFrbaQFoIn+IuzgKJBGGmmkkUYaaaSRRlok2n8MqhaGhsbzhQAAAABJRU5ErkJggg==" alt="QR para colaborar con Días Laborales" />
++        </div>
++        <p class="support-footnote">Cada aporte ayuda a mantener la app y seguir mejorándola. Gracias por usarla.</p>
++        <button class="primary-button full-width" type="button" data-close-dialog="support-dialog">Listo</button>
++      </div>
++    </dialog>
++
+     <dialog id="confirm-dialog" class="confirm-dialog">
+       <form method="dialog" class="confirm-card"><h2 id="confirm-title">Confirmar</h2><p id="confirm-message"></p><div class="confirm-actions"><button id="confirm-cancel" class="quiet-button" value="cancel">Cancelar</button><button id="confirm-ok" class="primary-button" value="confirm">Confirmar</button></div></form>
+     </dialog>
+diff -ruN '--exclude=DiasLaborales-3.0.1-source.tar.gz' dl301src/package-lock.json dl310src/package-lock.json
+--- dl301src/package-lock.json	2026-08-16 00:49:49.000000000 +0000
++++ dl310src/package-lock.json	2026-08-16 06:35:05.265450357 +0000
+@@ -1,12 +1,12 @@
+ {
+   "name": "dias-laborales",
+-  "version": "3.0.0",
++  "version": "3.1.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "dias-laborales",
+-      "version": "3.0.0",
++      "version": "3.1.0",
+       "dependencies": {
+         "@capacitor/android": "^7.4.0",
+         "@capacitor/app": "^7.0.0",
+diff -ruN '--exclude=DiasLaborales-3.0.1-source.tar.gz' dl301src/package.json dl310src/package.json
+--- dl301src/package.json	2026-08-16 06:02:24.000000000 +0000
++++ dl310src/package.json	2026-08-16 06:26:55.912216901 +0000
+@@ -1,7 +1,7 @@
+ {
+   "name": "dias-laborales",
+   "private": true,
+-  "version": "3.0.1",
++  "version": "3.1.0",
+   "type": "module",
+   "scripts": {
+     "dev": "vite --host 0.0.0.0",
+diff -ruN '--exclude=DiasLaborales-3.0.1-source.tar.gz' dl301src/src/core/notificationPlan.js dl310src/src/core/notificationPlan.js
+--- dl301src/src/core/notificationPlan.js	2026-08-14 16:42:42.000000000 +0000
++++ dl310src/src/core/notificationPlan.js	2026-08-16 06:20:40.527233356 +0000
+@@ -5,6 +5,9 @@
+ export const WORK_CHANNEL = 'work-reminders';
+ export const EVENT_CHANNEL = 'event-reminders';
+ 
++export const WORK_ALERT_GRACE_MS = 15 * 60_000;
++export const WORK_ALERT_RECOVERY_DELAY_MS = 5_000;
++
+ function weekdayAndDay(date) {
+   return date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric' });
+ }
+@@ -26,15 +29,26 @@
+       0,
+       0
+     );
+-    if (notifyDate <= now) continue;
++    let scheduledAt = notifyDate;
++    let lateRecovery = false;
++    if (notifyDate <= now) {
++      const lateness = now.getTime() - notifyDate.getTime();
++      if (lateness > WORK_ALERT_GRACE_MS) continue;
++
++      // Si la app se abre justo en el minuto del aviso, o Android demora una alarma
++      // flexible, no descartamos el turno de mañana por unos pocos segundos/minutos.
++      // Lo recuperamos inmediatamente para evitar el caso de "02:45:20 -> ya pasó".
++      scheduledAt = new Date(now.getTime() + WORK_ALERT_RECOVERY_DELAY_MS);
++      lateRecovery = true;
++    }
+ 
+     notifications.push({
+       id: workNotificationId(workDate),
+       title: 'Mañana trabajás',
+       body: `Tu próximo turno es mañana, ${weekdayAndDay(workDate)}.`,
+       channelId: WORK_CHANNEL,
+-      schedule: { at: notifyDate, allowWhileIdle: true },
+-      extra: { owner: 'dias-laborales-v2', type: 'work', dateKey: dateKey(workDate) }
++      schedule: { at: scheduledAt, allowWhileIdle: true },
++      extra: { owner: 'dias-laborales-v2', type: 'work', dateKey: dateKey(workDate), lateRecovery }
+     });
+   }
+   return notifications;
+diff -ruN '--exclude=DiasLaborales-3.0.1-source.tar.gz' dl301src/src/main.js dl310src/src/main.js
+--- dl301src/src/main.js	2026-08-16 06:02:24.000000000 +0000
++++ dl310src/src/main.js	2026-08-16 06:25:24.368528624 +0000
+@@ -307,6 +307,7 @@
+     if (!opened) showToast('No se pudo abrir la precisión de alarmas.', 'info');
+   });
+   byId('test-notification').addEventListener('click', testNotificationNow);
++  byId('open-support').addEventListener('click', () => byId('support-dialog').showModal());
+   byId('export-data').addEventListener('click', exportBackup);
+   byId('import-data').addEventListener('click', () => byId('import-file').click());
+   byId('import-file').addEventListener('change', importBackupFromFile);
+@@ -360,13 +361,16 @@
+     if (!App) return;
+     await App.addListener('appStateChange', async ({ isActive }) => {
+       if (!isActive) return;
++      // No reprogramamos todo cada vez que la app vuelve al frente: hacerlo justo
++      // en el minuto del aviso podía cancelar la alarma que Android estaba por entregar.
+       await refreshNotificationUi();
+-      scheduleRefresh('foreground');
+     });
+     await App.addListener('backButton', async () => {
+       const eventDialog = byId('event-dialog');
+       const dayDialog = byId('day-dialog');
+       const confirmDialog = byId('confirm-dialog');
++      const supportDialog = byId('support-dialog');
++      if (supportDialog.open) { supportDialog.close(); return; }
+       if (confirmDialog.open) { confirmDialog.close('cancel'); return; }
+       if (eventDialog.open) { eventDialog.close(); return; }
+       if (dayDialog.open) { dayDialog.close(); return; }
+@@ -577,7 +581,12 @@
+   if (!getStatus(state, tomorrow)) return;
+   const planned = new Date(now.getFullYear(), now.getMonth(), now.getDate(), state.notifications.hour, state.notifications.minute, 0, 0);
+   if (planned <= now) {
+-    window.setTimeout(() => showToast(`La hora de aviso de hoy (${pad2(state.notifications.hour)}:${pad2(state.notifications.minute)}) ya pasó. Usá “Probar aviso” para verificar Android.`, 'warning', 5200), 850);
++    const lateness = now.getTime() - planned.getTime();
++    if (lateness <= 15 * 60_000) {
++      window.setTimeout(() => showToast('El horario recién pasó: recuperé el aviso de mañana para que llegue enseguida.', 'success', 4800), 650);
++    } else {
++      window.setTimeout(() => showToast(`La hora de aviso de hoy (${pad2(state.notifications.hour)}:${pad2(state.notifications.minute)}) ya pasó. El próximo aviso se programará normalmente.`, 'warning', 5200), 850);
++    }
+   }
+ }
+ 
+diff -ruN '--exclude=DiasLaborales-3.0.1-source.tar.gz' dl301src/src/styles/app.css dl310src/src/styles/app.css
+--- dl301src/src/styles/app.css	2026-08-16 00:44:52.000000000 +0000
++++ dl310src/src/styles/app.css	2026-08-16 06:23:57.648956908 +0000
+@@ -278,3 +278,207 @@
+ @media (prefers-reduced-motion: reduce) {
+   *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+ }
++
++/* v3.1 · calendario más compacto y legible */
++.full-calendar,
++.home-calendar-block .compact-calendar {
++  padding: 10px;
++  border: 1px solid var(--line-soft);
++  border-radius: 16px;
++  background: color-mix(in srgb, var(--surface) 48%, var(--bg));
++  column-gap: 5px;
++  row-gap: 5px;
++}
++.full-calendar .weekday,
++.home-calendar-block .compact-calendar .weekday {
++  min-height: 28px;
++  font-size: .66rem;
++  font-weight: 800;
++}
++.full-calendar .calendar-empty,
++.home-calendar-block .compact-calendar .calendar-empty { min-height: 45px; }
++.full-calendar .calendar-day,
++.home-calendar-block .compact-calendar .calendar-day {
++  min-height: 45px;
++  border: 1px solid transparent;
++  border-radius: 11px;
++  background: color-mix(in srgb, var(--surface-soft) 24%, transparent);
++  transition: transform .12s ease, border-color .12s ease, background .12s ease;
++}
++.full-calendar .calendar-day:active,
++.home-calendar-block .compact-calendar .calendar-day:active { transform: scale(.96); }
++.full-calendar .calendar-day .day-number,
++.home-calendar-block .compact-calendar .calendar-day .day-number {
++  width: auto;
++  height: auto;
++  border-radius: 0;
++  background: transparent !important;
++  box-shadow: none !important;
++  color: var(--text);
++  font-size: .82rem;
++  font-weight: 800;
++}
++.full-calendar .calendar-day.work,
++.home-calendar-block .compact-calendar .calendar-day.work {
++  border-color: color-mix(in srgb, var(--blue) 42%, var(--line));
++  background: color-mix(in srgb, var(--blue) 30%, var(--surface));
++}
++.full-calendar .calendar-day.work .day-number,
++.home-calendar-block .compact-calendar .calendar-day.work .day-number { color: #f6f9ff; }
++body.theme-light .full-calendar .calendar-day.work,
++body.theme-light .home-calendar-block .compact-calendar .calendar-day.work {
++  background: color-mix(in srgb, var(--blue) 13%, white);
++}
++body.theme-light .full-calendar .calendar-day.work .day-number,
++body.theme-light .home-calendar-block .compact-calendar .calendar-day.work .day-number { color: #174c94; }
++.full-calendar .calendar-day.today,
++.home-calendar-block .compact-calendar .calendar-day.today {
++  border-color: var(--sky);
++  box-shadow: inset 0 0 0 1px var(--sky);
++}
++.full-calendar .calendar-day.selected,
++.home-calendar-block .compact-calendar .calendar-day.selected {
++  border-color: var(--text);
++  box-shadow: inset 0 0 0 1px var(--text);
++}
++.full-calendar .work-mark,
++.home-calendar-block .compact-calendar .work-mark {
++  right: 5px;
++  top: 4px;
++  font-size: .49rem;
++}
++.full-calendar .manual-mark,
++.home-calendar-block .compact-calendar .manual-mark { left: 5px; top: 5px; }
++.full-calendar .event-dots,
++.home-calendar-block .compact-calendar .event-dots { bottom: 4px; }
++.home-calendar-block .compact-calendar { padding: 8px; }
++.home-calendar-block .compact-calendar .calendar-day,
++.home-calendar-block .compact-calendar .calendar-empty { min-height: 40px; }
++.home-calendar-block .compact-calendar .calendar-day .day-number { font-size: .75rem; }
++.calendar-toolbar {
++  margin-bottom: 10px;
++  padding: 2px 4px;
++  border: 1px solid var(--line-soft);
++  border-radius: 13px;
++  background: color-mix(in srgb, var(--surface) 34%, transparent);
++}
++.calendar-legend {
++  margin: 12px 2px 10px;
++  gap: 8px 12px;
++}
++.month-summary { margin-left: 2px; }
++
++/* v3.1 · colaboración voluntaria */
++.support-section { padding-bottom: 4px; }
++.support-copy > p:not(.section-kicker) {
++  margin: 8px 0 14px;
++  color: var(--muted);
++  font-size: .72rem;
++  line-height: 1.55;
++}
++.support-button {
++  display: grid;
++  grid-template-columns: 38px 1fr auto;
++  align-items: center;
++  gap: 11px;
++  width: 100%;
++  min-height: 66px;
++  padding: 10px 12px;
++  border: 1px solid color-mix(in srgb, var(--sky) 32%, var(--line));
++  border-radius: 13px;
++  background: color-mix(in srgb, var(--surface-soft) 52%, transparent);
++  text-align: left;
++}
++.support-button-icon,
++.support-heart {
++  display: grid;
++  place-items: center;
++  border-radius: 50%;
++  color: var(--sky);
++}
++.support-button-icon {
++  width: 38px;
++  height: 38px;
++  background: color-mix(in srgb, var(--sky) 12%, transparent);
++  font-size: 1.35rem;
++  font-weight: 700;
++}
++.support-button > span:nth-child(2) { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
++.support-button strong { font-size: .82rem; }
++.support-button small { color: var(--muted); font-size: .66rem; }
++.support-dialog {
++  width: min(calc(100% - 28px), 440px);
++  max-height: calc(100vh - 32px);
++  margin: auto;
++  padding: 0;
++  border: 0;
++  background: transparent;
++  color: var(--text);
++}
++.support-dialog::backdrop { background: rgba(1, 8, 18, .78); }
++.support-card {
++  position: relative;
++  max-height: calc(100vh - 32px);
++  overflow-y: auto;
++  padding: 24px 20px 20px;
++  border: 1px solid var(--line);
++  border-radius: 18px;
++  background: var(--bg-elevated);
++  box-shadow: 0 24px 70px rgba(0,0,0,.32);
++  text-align: center;
++}
++.support-close {
++  position: absolute;
++  right: 8px;
++  top: 8px;
++  display: grid;
++  place-items: center;
++  width: 38px;
++  height: 38px;
++  padding: 0;
++  border: 0;
++  background: transparent;
++  color: var(--muted);
++  font-size: 1.55rem;
++}
++.support-heart {
++  width: 50px;
++  height: 50px;
++  margin: 0 auto 14px;
++  background: color-mix(in srgb, var(--sky) 12%, transparent);
++  font-size: 1.75rem;
++}
++.support-card h2 { margin: 0; font-size: 1.25rem; }
++.support-description {
++  margin: 10px auto 16px;
++  max-width: 340px;
++  color: var(--muted);
++  font-size: .74rem;
++  line-height: 1.55;
++}
++.support-qr-wrap {
++  width: min(100%, 292px);
++  margin: 0 auto 12px;
++  padding: 10px;
++  border-radius: 16px;
++  background: white;
++}
++.support-qr-wrap img {
++  display: block;
++  width: 100%;
++  height: auto;
++  border-radius: 10px;
++}
++.support-footnote {
++  margin: 0 auto 16px;
++  max-width: 330px;
++  color: var(--muted);
++  font-size: .68rem;
++  line-height: 1.5;
++}
++
++@media (max-width: 380px) {
++  .full-calendar { padding: 7px; column-gap: 3px; row-gap: 3px; }
++  .full-calendar .calendar-day { min-height: 41px; border-radius: 9px; }
++  .full-calendar .calendar-day .day-number { font-size: .76rem; }
++}
+diff -ruN '--exclude=DiasLaborales-3.0.1-source.tar.gz' dl301src/tests/notificationPlan.test.js dl310src/tests/notificationPlan.test.js
+--- dl301src/tests/notificationPlan.test.js	2026-08-16 00:49:10.000000000 +0000
++++ dl310src/tests/notificationPlan.test.js	2026-08-16 06:26:56.426052550 +0000
+@@ -37,6 +37,32 @@
+   assert.equal(plan.some(item => item.extra.dateKey === '2027-01-02'), false);
+ });
+ 
++
++test('si el aviso de mañana venció hace pocos segundos, lo recupera en vez de descartarlo', () => {
++  const state = baseState({
++    startDate: '2027-01-02',
++    schemeSegments: [{ from: '2027-01-02', anchorIsWork: true }],
++    notifications: { enabled: true, hour: 22, minute: 0, horizonDays: 30 }
++  });
++  const now = new Date(2027, 0, 1, 22, 0, 20, 0);
++  const plan = buildWorkNotificationPlan(state, now);
++  const alert = plan.find(item => item.extra.dateKey === '2027-01-02');
++  assert.ok(alert);
++  assert.equal(alert.extra.lateRecovery, true);
++  assert.equal(alert.schedule.at.getTime(), now.getTime() + 5_000);
++});
++
++test('un aviso vencido hace más de quince minutos no se recupera', () => {
++  const state = baseState({
++    startDate: '2027-01-02',
++    schemeSegments: [{ from: '2027-01-02', anchorIsWork: true }],
++    notifications: { enabled: true, hour: 22, minute: 0, horizonDays: 30 }
++  });
++  const now = new Date(2027, 0, 1, 22, 16, 0, 0);
++  const plan = buildWorkNotificationPlan(state, now);
++  assert.equal(plan.some(item => item.extra.dateKey === '2027-01-02'), false);
++});
++
+ test('recordatorios antiguos conservan su fecha y usan namespace separado', () => {
+   const state = baseState({
+     events: {
