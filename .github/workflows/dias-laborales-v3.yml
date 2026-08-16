@@ -22,10 +22,22 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+          echo 'c6b6cf3c85c0e287a24b56153de394ca596e0a1d3dd227f18489b85e7e355a4f  dias-laborales-v3/source.part00' | sha256sum -c -
+          echo 'df336161523308715a6ce1344446b5d62ebad954cc319478251f66b47e9e15da  dias-laborales-v3/source.part01' | sha256sum -c -
           echo '744822ceed6e2beecee4fb749086e429320a5d053181a3f8d7a9b6eabe4768c7  dias-laborales-v3/source.part02a' | sha256sum -c -
           echo '8393962693434d8b7de93d303d6fc05a16fb5d39183e37546afb8aef949a44ec  dias-laborales-v3/source.part02b' | sha256sum -c -
-          echo '046db8e3412f737c09ce92c1ebce53a3d7e0e6ea8968f72ed71b0f1a22163611  dias-laborales-v3/source.part10a' | sha256sum -c -
-          echo 'd1b6b274acf68f22561c6639e6d454ae3d530c98aca29034db12cd2a25ba871e  dias-laborales-v3/source.part10b' | sha256sum -c -
+          echo 'c6beab0dd38af8f4e7f7ddbea02b1e9779d449824a5d37136425bf563d509410  dias-laborales-v3/source.part03' | sha256sum -c -
+          echo '4fc878cd776001c1f1654afbbfce2ead48b4d599699328ce27ae10d20551dd17  dias-laborales-v3/source.part04' | sha256sum -c -
+          echo '2a1ba2b33d6e66a20f3b216410f5d5003d05fe2bae8dfcc683109aeebbd8ccc8  dias-laborales-v3/source.part05' | sha256sum -c -
+          echo '8c0e56211049865f8e7470a286579f82d485c46e595e5a2bbdbcb5a255579746  dias-laborales-v3/source.part06' | sha256sum -c -
+          echo 'ebef5a4ed5650162f35154c31cd83752ea134803b598d8299b5100d74965ed23  dias-laborales-v3/source.part07' | sha256sum -c -
+          echo '273c87feee8c4c4a9ec7733d792b5e2dfd3aaad2bc732222c020e3734bad28ac  dias-laborales-v3/source.part08' | sha256sum -c -
+          echo 'd9756b43870235afdddf075cb6b5ff7ff20bfec84f0fbb7cde83e42c68efafeb  dias-laborales-v3/source.part09' | sha256sum -c -
+          echo '54ff43dd55595cd11b2fff7b974b3f26142862cf4afdffbbe357b64dd712f5b9  dias-laborales-v3/source.part10q0' | sha256sum -c -
+          echo '68ca31f9ea1ee35feac9e22b6f5c14fdbb7735e6de3c88cb8b7568fa7196df68  dias-laborales-v3/source.part10q1' | sha256sum -c -
+          echo 'e0bef7ad14bb674367d64f8d54d6e83e8fc6fcbb8991123907a6c6c1f7461681  dias-laborales-v3/source.part10q2' | sha256sum -c -
+          echo '9728821eb78bc4c01f9100c242d28ded55ea802dc3be1e4fc87ef353a169d61a  dias-laborales-v3/source.part10q3' | sha256sum -c -
+          echo '3872ea5a455797442945091e23bb9ca430f0982b089285105058b3baa767c30c  dias-laborales-v3/source.part11' | sha256sum -c -
           cat \
             dias-laborales-v3/source.part00 \
             dias-laborales-v3/source.part01 \
@@ -38,8 +50,10 @@ jobs:
             dias-laborales-v3/source.part07 \
             dias-laborales-v3/source.part08 \
             dias-laborales-v3/source.part09 \
-            dias-laborales-v3/source.part10a \
-            dias-laborales-v3/source.part10b \
+            dias-laborales-v3/source.part10q0 \
+            dias-laborales-v3/source.part10q1 \
+            dias-laborales-v3/source.part10q2 \
+            dias-laborales-v3/source.part10q3 \
             dias-laborales-v3/source.part11 \
             > /tmp/source.b64
           test "$(wc -c < /tmp/source.b64)" -eq 79320
