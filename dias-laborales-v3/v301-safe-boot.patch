@@ -1,0 +1,355 @@
+diff --git a/DiasLaborales_v3/package.json b/DiasLaborales_v301/package.json
+index 0414a20..c05716c 100644
+--- a/DiasLaborales_v3/package.json
++++ b/DiasLaborales_v301/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "dias-laborales",
+   "private": true,
+-  "version": "3.0.0",
++  "version": "3.0.1",
+   "type": "module",
+   "scripts": {
+     "dev": "vite --host 0.0.0.0",
+diff --git a/DiasLaborales_v3/capacitor.config.ts b/DiasLaborales_v301/capacitor.config.ts
+index 07482b4..fe95ef2 100644
+--- a/DiasLaborales_v3/capacitor.config.ts
++++ b/DiasLaborales_v301/capacitor.config.ts
+@@ -13,7 +13,7 @@ const config: CapacitorConfig = {
+       iconColor: '#3478E5'
+     },
+     SplashScreen: {
+-      launchShowDuration: 900,
++      launchShowDuration: 450,
+       launchAutoHide: true,
+       backgroundColor: '#081A33FF',
+       androidScaleType: 'CENTER_CROP',
+diff --git a/DiasLaborales_v3/android/app/build.gradle b/DiasLaborales_v301/android/app/build.gradle
+index 4eb1f3e..558773a 100644
+--- a/DiasLaborales_v3/android/app/build.gradle
++++ b/DiasLaborales_v301/android/app/build.gradle
+@@ -8,8 +8,8 @@ android {
+         applicationId "com.lyjdesarrollos.diaslaborales"
+         minSdkVersion rootProject.ext.minSdkVersion
+         targetSdkVersion rootProject.ext.targetSdkVersion
+-        versionCode 6
+-        versionName "3.0.0"
++        versionCode 7
++        versionName "3.0.1"
+         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+         aaptOptions {
+             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+diff --git a/DiasLaborales_v3/index.html b/DiasLaborales_v301/index.html
+index 8a512a2..6e8a376 100644
+--- a/DiasLaborales_v3/index.html
++++ b/DiasLaborales_v301/index.html
+@@ -10,7 +10,7 @@
+     <link rel="stylesheet" href="/src/styles/app.css" />
+   </head>
+   <body class="theme-dark">
+-    <div id="startup-guard" class="startup-guard">
++    <div id="startup-guard" class="startup-guard" style="position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:#081a33;color:#f4f7fb;font-family:system-ui,sans-serif">
+       <div class="startup-inner">
+         <svg class="startup-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v3M17 3v3M4.5 8.5h15M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="m8.5 14 2 2 5-5"/></svg>
+         <strong>Días Laborales</strong>
+diff --git a/DiasLaborales_v3/src/main.js b/DiasLaborales_v301/src/main.js
+index e635a39..f0ebccd 100644
+--- a/DiasLaborales_v3/src/main.js
++++ b/DiasLaborales_v301/src/main.js
+@@ -24,7 +24,7 @@ import {
+ } from './core/schedule.js';
+ import { deleteEvent, reminderValueForEvent, upsertEvent } from './core/events.js';
+ import { clearStoredState, loadState, saveState } from './services/storage.js';
+-import { applyNativeStatusBar, getAppPlugin, isNativeAndroid, openNativeAppSettings } from './services/native.js';
++import { applyNativeStatusBar, getAppPlugin, hideNativeSplash, isNativeAndroid, openNativeAppSettings } from './services/native.js';
+ import {
+   cancelManagedNotifications,
+   consumePendingNotificationAction,
+@@ -145,29 +145,52 @@ function seedDemoIfRequested() {
+ }
+ 
+ async function bootstrap() {
+-  seedDemoIfRequested();
+-  state = await loadState();
+-  applyTheme(state.theme, true);
+-  bindGlobalEvents();
+-  setupAndroidLifecycle().catch(error => console.error('No se pudo iniciar el lifecycle Android:', error));
+-  appReady = true;
+-
+-  if (!state.configured) {
+-    showOnboarding();
+-  } else {
+-    showApp();
+-    renderEverything();
+-    applyDemoViewIfRequested();
+-    refreshNotificationUi().catch(error => console.error('No se pudo actualizar el diagnóstico:', error));
+-    scheduleRefresh('startup');
+-  }
++  // No esperamos al splash nativo para empezar. Si el plugin está disponible, lo
++  // retiramos de forma explícita y continuamos aunque falle.
++  hideNativeSplash().catch(() => {});
++
++  // Red de seguridad: jamás dejamos al usuario frente a una pantalla azul.
++  // Si algún puente nativo tarda más de lo esperado, mostramos onboarding y la
++  // app sigue siendo utilizable.
++  const bootFallback = window.setTimeout(() => {
++    const shellHidden = byId('app-shell')?.classList.contains('hidden');
++    const onboardingHidden = byId('onboarding')?.classList.contains('hidden');
++    if (shellHidden && onboardingHidden) {
++      console.warn('Arranque lento: activando interfaz de recuperación.');
++      state = normalizeState(state || {});
++      showOnboarding();
++      hideStartupGuard();
++    }
++  }, 1400);
+ 
+-  hideStartupGuard();
+-  consumePendingNotificationAction(handleNotificationAction);
+-  if (queuedNotificationPayload) {
+-    const payload = queuedNotificationPayload;
+-    queuedNotificationPayload = null;
+-    handleNotificationAction(payload);
++  try {
++    seedDemoIfRequested();
++    state = await loadState();
++    applyTheme(state.theme, true);
++    bindGlobalEvents();
++    setupAndroidLifecycle().catch(error => console.error('No se pudo iniciar el lifecycle Android:', error));
++    appReady = true;
++
++    if (!state.configured) {
++      showOnboarding();
++    } else {
++      showApp();
++      renderEverything();
++      applyDemoViewIfRequested();
++      refreshNotificationUi().catch(error => console.error('No se pudo actualizar el diagnóstico:', error));
++      scheduleRefresh('startup');
++    }
++
++    consumePendingNotificationAction(handleNotificationAction);
++    if (queuedNotificationPayload) {
++      const payload = queuedNotificationPayload;
++      queuedNotificationPayload = null;
++      handleNotificationAction(payload);
++    }
++  } finally {
++    window.clearTimeout(bootFallback);
++    hideStartupGuard();
++    hideNativeSplash().catch(() => {});
+   }
+ }
+ 
+diff --git a/DiasLaborales_v3/src/services/native.js b/DiasLaborales_v301/src/services/native.js
+index fe10101..a523a41 100644
+--- a/DiasLaborales_v3/src/services/native.js
++++ b/DiasLaborales_v301/src/services/native.js
+@@ -1,4 +1,9 @@
+-let modulesPromise = null;
++import { Capacitor, registerPlugin } from '@capacitor/core';
++import { LocalNotifications } from '@capacitor/local-notifications';
++import { Preferences } from '@capacitor/preferences';
++import { App } from '@capacitor/app';
++import { StatusBar, Style } from '@capacitor/status-bar';
++import { SplashScreen } from '@capacitor/splash-screen';
+ 
+ export function createPluginFacade(nativePlugin, methods = []) {
+   if (!nativePlugin) return null;
+@@ -10,26 +15,24 @@ export function createPluginFacade(nativePlugin, methods = []) {
+ }
+ 
+ export function isNativeAndroid() {
+-  return Boolean(window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === 'android');
++  try {
++    return Boolean(Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android');
++  } catch {
++    return false;
++  }
+ }
+ 
+-async function loadModules() {
+-  if (!modulesPromise) {
+-    modulesPromise = Promise.all([
+-      import('@capacitor/local-notifications').catch(() => null),
+-      import('@capacitor/preferences').catch(() => null),
+-      import('@capacitor/app').catch(() => null),
+-      import('@capacitor/status-bar').catch(() => null),
+-      import('@capacitor/core').catch(() => null)
+-    ]).then(([notifications, preferences, app, statusBar, core]) => ({ notifications, preferences, app, statusBar, core }));
+-  }
+-  return modulesPromise;
++// Oculta explícitamente el splash nativo. Además de launchAutoHide, esta llamada
++// evita que algunos WebView/dispositivos queden mostrando sólo el fondo de arranque.
++export async function hideNativeSplash() {
++  if (!isNativeAndroid()) return;
++  try { await SplashScreen.hide(); }
++  catch (error) { console.warn('No se pudo ocultar explícitamente el splash:', error); }
+ }
+ 
+ export async function getLocalNotifications() {
+   if (!isNativeAndroid()) return null;
+-  const modules = await loadModules();
+-  return createPluginFacade(modules.notifications?.LocalNotifications, [
++  return createPluginFacade(LocalNotifications, [
+     'schedule', 'getPending', 'registerActionTypes', 'cancel', 'areEnabled',
+     'createChannel', 'deleteChannel', 'listChannels', 'checkPermissions',
+     'requestPermissions', 'checkExactNotificationSetting',
+@@ -39,16 +42,14 @@ export async function getLocalNotifications() {
+ 
+ export async function getPreferences() {
+   if (!isNativeAndroid()) return null;
+-  const modules = await loadModules();
+-  return createPluginFacade(modules.preferences?.Preferences, [
++  return createPluginFacade(Preferences, [
+     'configure', 'get', 'set', 'remove', 'clear', 'keys', 'migrate', 'removeOld'
+   ]);
+ }
+ 
+ export async function getAppPlugin() {
+   if (!isNativeAndroid()) return null;
+-  const modules = await loadModules();
+-  return createPluginFacade(modules.app?.App, [
++  return createPluginFacade(App, [
+     'addListener', 'removeAllListeners', 'exitApp', 'getInfo', 'getState',
+     'getLaunchUrl', 'minimizeApp'
+   ]);
+@@ -57,10 +58,6 @@ export async function getAppPlugin() {
+ export async function applyNativeStatusBar(theme) {
+   if (!isNativeAndroid()) return;
+   try {
+-    const modules = await loadModules();
+-    const StatusBar = modules.statusBar?.StatusBar;
+-    const Style = modules.statusBar?.Style;
+-    if (!StatusBar || !Style) return;
+     await StatusBar.setOverlaysWebView({ overlay: false });
+     await StatusBar.setBackgroundColor({ color: theme === 'light' ? '#F4F7FB' : '#07162F' });
+     await StatusBar.setStyle({ style: theme === 'light' ? Style.Dark : Style.Light });
+@@ -69,13 +66,9 @@ export async function applyNativeStatusBar(theme) {
+   }
+ }
+ 
+-
+ export async function getNativeBuildInfo() {
+   if (!isNativeAndroid()) return { debug: false, native: false };
+   try {
+-    const modules = await loadModules();
+-    const registerPlugin = modules.core?.registerPlugin;
+-    if (!registerPlugin) return { debug: false, native: true };
+     const AndroidSettings = registerPlugin('AndroidSettings');
+     const result = await AndroidSettings.getBuildInfo();
+     return { ...result, native: true };
+@@ -88,9 +81,6 @@ export async function getNativeBuildInfo() {
+ export async function openNativeAppSettings() {
+   if (!isNativeAndroid()) return false;
+   try {
+-    const modules = await loadModules();
+-    const registerPlugin = modules.core?.registerPlugin;
+-    if (!registerPlugin) return false;
+     const AndroidSettings = registerPlugin('AndroidSettings');
+     await AndroidSettings.openAppSettings();
+     return true;
+diff --git a/DiasLaborales_v3/src/services/storage.js b/DiasLaborales_v301/src/services/storage.js
+index 259bfd2..308d383 100644
+--- a/DiasLaborales_v3/src/services/storage.js
++++ b/DiasLaborales_v301/src/services/storage.js
+@@ -2,11 +2,20 @@ import { CURRENT_STORAGE_KEY, LEGACY_CONFIG_KEY, LEGACY_THEME_KEY, migrateLegacy
+ import { normalizeState } from '../core/schedule.js';
+ import { getPreferences, isNativeAndroid } from './native.js';
+ 
++const NATIVE_READ_TIMEOUT_MS = 900;
++
++function withTimeout(promise, ms, fallback = null) {
++  return Promise.race([
++    promise,
++    new Promise(resolve => window.setTimeout(() => resolve(fallback), ms))
++  ]);
++}
++
+ async function nativeGet(key) {
+   const Preferences = await getPreferences();
+   if (!Preferences) return null;
+-  const { value } = await Preferences.get({ key });
+-  return value;
++  const result = await withTimeout(Preferences.get({ key }), NATIVE_READ_TIMEOUT_MS, { value: null });
++  return result?.value ?? null;
+ }
+ 
+ async function nativeSet(key, value) {
+@@ -32,17 +41,45 @@ function safeParse(raw) {
+ 
+ export async function loadState() {
+   try {
+-    let raw = null;
+-    if (isNativeAndroid()) raw = await nativeGet(CURRENT_STORAGE_KEY);
+-    if (!raw) raw = localStorage.getItem(CURRENT_STORAGE_KEY);
+-    const parsed = safeParse(raw);
+-    if (parsed?.dataVersion === 2) return normalizeState(parsed);
++    // localStorage vive dentro de la WebView y es instantáneo. Nunca bloqueamos el
++    // primer render esperando el puente nativo de Preferences.
++    const localRaw = localStorage.getItem(CURRENT_STORAGE_KEY);
++    const localParsed = safeParse(localRaw);
++    if (localParsed?.dataVersion === 2) return normalizeState(localParsed);
++
++    let nativeRaw = null;
++    if (isNativeAndroid()) {
++      try { nativeRaw = await nativeGet(CURRENT_STORAGE_KEY); }
++      catch (error) { console.warn('Preferences no respondió al iniciar; se usa almacenamiento web:', error); }
++    }
++    const nativeParsed = safeParse(nativeRaw);
++    if (nativeParsed?.dataVersion === 2) {
++      const normalized = normalizeState(nativeParsed);
++      localStorage.setItem(CURRENT_STORAGE_KEY, JSON.stringify(normalized));
++      return normalized;
++    }
+ 
+-    const legacyRaw = localStorage.getItem(LEGACY_CONFIG_KEY) || (isNativeAndroid() ? await nativeGet(LEGACY_CONFIG_KEY) : null);
+-    const legacyTheme = localStorage.getItem(LEGACY_THEME_KEY) || (isNativeAndroid() ? await nativeGet(LEGACY_THEME_KEY) : null) || 'dark';
+-    const migrated = migrateLegacyState(safeParse(legacyRaw), legacyTheme);
+-    await saveState(migrated);
+-    return migrated;
++    const legacyLocal = localStorage.getItem(LEGACY_CONFIG_KEY);
++    const legacyThemeLocal = localStorage.getItem(LEGACY_THEME_KEY);
++    let legacyNative = null;
++    let legacyThemeNative = null;
++    if (isNativeAndroid() && !legacyLocal) {
++      try { legacyNative = await nativeGet(LEGACY_CONFIG_KEY); }
++      catch { /* fallback local */ }
++    }
++    if (isNativeAndroid() && !legacyThemeLocal) {
++      try { legacyThemeNative = await nativeGet(LEGACY_THEME_KEY); }
++      catch { /* fallback local */ }
++    }
++
++    const migrated = migrateLegacyState(
++      safeParse(legacyLocal || legacyNative),
++      legacyThemeLocal || legacyThemeNative || 'dark'
++    );
++    const normalized = normalizeState(migrated);
++    localStorage.setItem(CURRENT_STORAGE_KEY, JSON.stringify(normalized));
++    if (isNativeAndroid()) nativeSet(CURRENT_STORAGE_KEY, JSON.stringify(normalized)).catch(error => console.warn('No se pudo sincronizar Preferences:', error));
++    return normalized;
+   } catch (error) {
+     console.error('Falló la carga de datos; se inicia con una configuración segura:', error);
+     return normalizeState({});
+@@ -54,8 +91,8 @@ export async function saveState(state) {
+   const serialized = JSON.stringify(normalized);
+   localStorage.setItem(CURRENT_STORAGE_KEY, serialized);
+   if (isNativeAndroid()) {
+-    try { await nativeSet(CURRENT_STORAGE_KEY, serialized); }
+-    catch (error) { console.error('No se pudo persistir en Capacitor Preferences:', error); }
++    // Persistencia nativa en segundo plano: nunca congela la interfaz.
++    nativeSet(CURRENT_STORAGE_KEY, serialized).catch(error => console.error('No se pudo persistir en Capacitor Preferences:', error));
+   }
+   return normalized;
+ }
+@@ -64,9 +101,6 @@ export async function clearStoredState() {
+   const keys = [CURRENT_STORAGE_KEY, LEGACY_CONFIG_KEY, LEGACY_THEME_KEY, 'diasLaboralesNotifPermission_v1'];
+   keys.forEach(key => localStorage.removeItem(key));
+   if (isNativeAndroid()) {
+-    for (const key of keys) {
+-      try { await nativeRemove(key); }
+-      catch (error) { console.error(`No se pudo borrar ${key} de Preferences:`, error); }
+-    }
++    await Promise.allSettled(keys.map(key => nativeRemove(key)));
+   }
+ }
