@@ -1,0 +1,152 @@
+name: Build Dias Laborales v3 APK
+
+on:
+  push:
+    branches:
+      - dias-laborales-v3-build-20260815
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct verified v3 source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat \
+            dias-laborales-v3/source.part00 \
+            dias-laborales-v3/source.part01 \
+            dias-laborales-v3/source.part02 \
+            dias-laborales-v3/source.part03 \
+            dias-laborales-v3/source.part04 \
+            dias-laborales-v3/source.part05 \
+            dias-laborales-v3/source.part06 \
+            dias-laborales-v3/source.part07 \
+            dias-laborales-v3/source.part08 \
+            dias-laborales-v3/source.part09 \
+            dias-laborales-v3/source.part10 \
+            dias-laborales-v3/source.part11 \
+            > /tmp/source.b64
+          test "$(wc -c < /tmp/source.b64)" -eq 79320
+          base64 -d /tmp/source.b64 > /tmp/DiasLaborales_v3.tar.xz
+          echo '1bef0afa3277f83b8fddedf5bf608d2455e55428cd32654159424039301dc57d  /tmp/DiasLaborales_v3.tar.xz' | sha256sum -c -
+          rm -rf /tmp/dias-laborales
+          mkdir -p /tmp/dias-laborales
+          tar -xJf /tmp/DiasLaborales_v3.tar.xz -C /tmp/dias-laborales
+          test -f /tmp/dias-laborales/package.json
+          test -f /tmp/dias-laborales/android/app/build.gradle
+          test -f /tmp/dias-laborales/src/core/events.js
+          test -f /tmp/dias-laborales/src/services/notifications.js
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Android SDK 35
+        shell: bash
+        run: |
+          set -euxo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Setup Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Install dependencies and run 22 tests
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
+          npm install
+          npm test | tee /tmp/tests.txt
+          grep -q '# tests 22' /tmp/tests.txt
+          grep -q '# pass 22' /tmp/tests.txt
+          grep -q '# fail 0' /tmp/tests.txt
+
+      - name: Build Vite application
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
+          npm run build
+          grep -q 'src="./assets/' dist/index.html
+          grep -q 'href="./assets/' dist/index.html
+          grep -R -q 'Próximo aviso' dist
+          grep -R -q 'Nueva anotación' dist
+          grep -R -q 'Probar notificación' dist
+
+      - name: Browser smoke test and screenshots
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 -m http.server 4173 --directory dist >/tmp/http.log 2>&1 &
+          HTTP_PID=$!
+          trap 'kill $HTTP_PID || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME"
+          "$CHROME" --headless --no-sandbox --disable-gpu --window-size=412,915 --virtual-time-budget=5000 --dump-dom 'http://127.0.0.1:4173/?demo=1&view=home' > /tmp/home-dom.html
+          grep -q 'TRABAJ' /tmp/home-dom.html
+          grep -q 'Próximo aviso' /tmp/home-dom.html
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,915 --virtual-time-budget=5000 --screenshot=/tmp/home.png 'http://127.0.0.1:4173/?demo=1&view=home'
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,1000 --virtual-time-budget=5000 --screenshot=/tmp/calendar.png 'http://127.0.0.1:4173/?demo=1&view=calendar'
+          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,1000 --virtual-time-budget=5000 --screenshot=/tmp/settings.png 'http://127.0.0.1:4173/?demo=1&view=settings'
+
+      - name: Sync Capacitor Android
+        working-directory: /tmp/dias-laborales
+        run: npx cap sync android
+
+      - name: Assemble installable APK
+        working-directory: /tmp/dias-laborales/android
+        run: gradle assembleDebug --stacktrace
+
+      - name: Verify APK contents and signature
+        shell: bash
+        run: |
+          set -euxo pipefail
+          APK=/tmp/dias-laborales/android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          cp "$APK" /tmp/DiasLaborales-3.0.0.apk
+          unzip -t /tmp/DiasLaborales-3.0.0.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/DiasLaborales-3.0.0.apk | tee /tmp/apksigner.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales-3.0.0.apk | tee /tmp/apk-badging.txt
+          grep -q "versionCode='6'" /tmp/apk-badging.txt
+          grep -q "versionName='3.0.0-debug'" /tmp/apk-badging.txt
+          sha256sum /tmp/DiasLaborales-3.0.0.apk | tee /tmp/DiasLaborales-3.0.0.sha256
+          cp /tmp/dias-laborales/package-lock.json /tmp/package-lock.json
+
+      - name: Upload final artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiasLaborales-3.0.0
+          path: |
+            /tmp/DiasLaborales-3.0.0.apk
+            /tmp/DiasLaborales-3.0.0.sha256
+            /tmp/apksigner.txt
+            /tmp/apk-badging.txt
+            /tmp/package-lock.json
+            /tmp/home.png
+            /tmp/calendar.png
+            /tmp/settings.png
+          if-no-files-found: error
+          retention-days: 7
