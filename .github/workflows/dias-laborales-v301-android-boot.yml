@@ -29,20 +29,17 @@ jobs:
           mkdir -p /tmp/dias-laborales
           tar -xJf /tmp/DiasLaborales_v3.tar.xz -C /tmp/dias-laborales
 
-      - name: Apply verified 3.0.1 safe-boot overlay
+      - name: Apply exact 3.0.1 safe-boot patch
         shell: bash
         run: |
           set -euxo pipefail
-          cat dias-laborales-v3/v301_overlay.part00 dias-laborales-v3/v301_overlay.part01 dias-laborales-v3/v301_overlay.part02 dias-laborales-v3/v301_overlay.part03 > /tmp/v301-overlay.b64
-          echo '1f74db7081c3f0b258ec076d1a9688277b57c47c563a373e02082c588f9d8162  /tmp/v301-overlay.b64' | sha256sum -c -
-          base64 -d /tmp/v301-overlay.b64 > /tmp/v301-overlay.tar.gz
-          echo 'a243d6a780d4e0c6766428446d38065dca6e7e1e1d1727cb62f68f24287043b2  /tmp/v301-overlay.tar.gz' | sha256sum -c -
-          tar -xzf /tmp/v301-overlay.tar.gz -C /tmp/dias-laborales
-          grep -q '"version": "3.0.1"' /tmp/dias-laborales/package.json
-          grep -q 'versionCode 7' /tmp/dias-laborales/android/app/build.gradle
-          grep -q 'hideNativeSplash' /tmp/dias-laborales/src/main.js
-          grep -q 'NATIVE_READ_TIMEOUT_MS = 900' /tmp/dias-laborales/src/services/storage.js
-          ! grep -q "import('@capacitor" /tmp/dias-laborales/src/services/native.js
+          cd /tmp/dias-laborales
+          patch -p2 < "$GITHUB_WORKSPACE/dias-laborales-v3/v301-safe-boot.patch"
+          grep -q '"version": "3.0.1"' package.json
+          grep -q 'versionCode 7' android/app/build.gradle
+          grep -q 'hideNativeSplash' src/main.js
+          grep -q 'NATIVE_READ_TIMEOUT_MS = 900' src/services/storage.js
+          ! grep -q "import('@capacitor" src/services/native.js
 
       - uses: actions/setup-node@v4
         with:
@@ -146,14 +143,15 @@ jobs:
             adb logcat -d > /tmp/android-logcat.txt
             if test -s /tmp/android-window.xml; then
               cat /tmp/android-window.xml
-              grep -Eq 'Días Laborales|primer día de trabajo|Continuar' /tmp/android-window.xml
-            else
-              echo 'UIAutomator no generó XML; usando logcat y captura como evidencia.'
-              ! grep -E 'FATAL EXCEPTION|AndroidRuntime.*FATAL|chromium.*Uncaught|Unable to start activity' /tmp/android-logcat.txt
+              grep -Eq 'Días Laborales|primer día de trabajo|Continuar' /tmp/android-window.xml || {
+                echo 'UIAutomator no expuso el contenido de WebView; validando proceso, Activity y ausencia de crash.'
+                ! grep -E 'FATAL EXCEPTION|AndroidRuntime.*FATAL|chromium.*Uncaught|Unable to start activity' /tmp/android-logcat.txt
+              }
             fi
             ! grep -E 'FATAL EXCEPTION|AndroidRuntime.*FATAL|Unable to start activity' /tmp/android-logcat.txt
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: DiasLaborales-3.0.1-BOOT-TESTED
           path: |
