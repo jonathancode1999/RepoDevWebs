@@ -1,0 +1,157 @@
+name: Build and verify Dias Laborales 3.1.0
+
+on:
+  push:
+    branches: [dias-laborales-v3-build-20260815]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct verified 3.0.1 source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat dias-laborales-v3/source.part00 dias-laborales-v3/source.part01 dias-laborales-v3/source.part02a dias-laborales-v3/source.part02b dias-laborales-v3/source.part03 dias-laborales-v3/source.part04 dias-laborales-v3/source.part05 dias-laborales-v3/source.part06 dias-laborales-v3/source.part07 dias-laborales-v3/source.part08 dias-laborales-v3/source.part09 > /tmp/pre.b64
+          base64 -d /tmp/pre.b64 > /tmp/pre.bin
+          cat dias-laborales-v3/c10b0.bin dias-laborales-v3/c10b1.bin dias-laborales-v3/c10b2.bin dias-laborales-v3/c10b3.bin dias-laborales-v3/c10b4.bin dias-laborales-v3/c10b5.bin dias-laborales-v3/c10b6.bin > /tmp/c10.bin
+          base64 -d dias-laborales-v3/source.part11 > /tmp/post.bin
+          cat /tmp/pre.bin /tmp/c10.bin /tmp/post.bin > /tmp/DiasLaborales_v3.tar.xz
+          test "$(wc -c < /tmp/DiasLaborales_v3.tar.xz)" -eq 59488
+          echo '1bef0afa3277f83b8fddedf5bf608d2455e55428cd32654159424039301dc57d  /tmp/DiasLaborales_v3.tar.xz' | sha256sum -c -
+          mkdir -p /tmp/dias-laborales
+          tar -xJf /tmp/DiasLaborales_v3.tar.xz -C /tmp/dias-laborales
+          cd /tmp/dias-laborales
+          patch -p2 < "$GITHUB_WORKSPACE/dias-laborales-v3/v301-safe-boot.patch"
+          patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v310-notifications-calendar-support.patch"
+          grep -q '"version": "3.1.0"' package.json
+          grep -q 'versionCode 8' android/app/build.gradle
+          grep -q 'lateRecovery' src/core/notificationPlan.js
+          grep -q 'open-support' index.html
+          ! grep -q "scheduleRefresh('foreground')" src/main.js
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Install dependencies
+        working-directory: /tmp/dias-laborales
+        run: npm install
+
+      - name: Run tests
+        working-directory: /tmp/dias-laborales
+        run: npm test
+
+      - name: Build web app
+        working-directory: /tmp/dias-laborales
+        run: |
+          npm run build
+          test -s dist/index.html
+          grep -q 'Quiero colaborar' dist/index.html
+          grep -q 'data:image/png;base64' dist/index.html
+
+      - name: Web visual smoke tests
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 -m http.server 4173 --directory dist >/tmp/http.log 2>&1 &
+          P=$!
+          trap 'kill $P || true' EXIT
+          sleep 1
+          C="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$C" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,915 --virtual-time-budget=5000 --screenshot=/tmp/calendar-v310.png 'http://127.0.0.1:4173/?demo=1&view=calendar'
+          "$C" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,915 --virtual-time-budget=5000 --screenshot=/tmp/settings-v310.png 'http://127.0.0.1:4173/?demo=1&view=settings'
+          "$C" --headless --no-sandbox --disable-gpu --window-size=412,915 --virtual-time-budget=5000 --dump-dom 'http://127.0.0.1:4173/?demo=1&view=settings' > /tmp/settings-dom.html
+          grep -q 'Quiero colaborar' /tmp/settings-dom.html
+          grep -q 'Ayudá a mejorar Días Laborales' /tmp/settings-dom.html
+
+      - name: Capacitor sync
+        working-directory: /tmp/dias-laborales
+        run: npx cap sync android
+
+      - name: Build APK
+        working-directory: /tmp/dias-laborales/android
+        run: gradle assembleDebug --stacktrace
+
+      - name: Verify APK package and signature
+        shell: bash
+        run: |
+          set -euxo pipefail
+          APK=/tmp/dias-laborales/android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          cp "$APK" /tmp/DiasLaborales-3.1.0.apk
+          unzip -t /tmp/DiasLaborales-3.1.0.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/DiasLaborales-3.1.0.apk | tee /tmp/apksigner-v310.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales-3.1.0.apk | tee /tmp/apk-badging-v310.txt
+          grep -q "versionCode='8'" /tmp/apk-badging-v310.txt
+          grep -q "versionName='3.1.0-debug'" /tmp/apk-badging-v310.txt
+          sha256sum /tmp/DiasLaborales-3.1.0.apk | tee /tmp/DiasLaborales-3.1.0.sha256
+          cd /tmp/dias-laborales
+          tar --exclude='./node_modules' --exclude='./android/.gradle' --exclude='./android/app/build' -czf /tmp/DiasLaborales-3.1.0-source.tar.gz .
+
+      - name: Enable KVM
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+
+      - name: Android boot smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            adb install /tmp/DiasLaborales-3.1.0.apk
+            adb shell pm clear com.lyjdesarrollos.diaslaborales
+            adb logcat -c
+            adb shell monkey -p com.lyjdesarrollos.diaslaborales -c android.intent.category.LAUNCHER 1
+            sleep 7
+            adb shell dumpsys activity activities | grep -q 'com.lyjdesarrollos.diaslaborales/.MainActivity'
+            adb exec-out screencap -p > /tmp/android-start-v310.png
+            adb logcat -d > /tmp/android-logcat-v310.txt
+            ! grep -E 'FATAL EXCEPTION|AndroidRuntime.*FATAL|Unable to start activity' /tmp/android-logcat-v310.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DiasLaborales-3.1.0-VERIFIED
+          path: |
+            /tmp/DiasLaborales-3.1.0.apk
+            /tmp/DiasLaborales-3.1.0.sha256
+            /tmp/DiasLaborales-3.1.0-source.tar.gz
+            /tmp/apksigner-v310.txt
+            /tmp/apk-badging-v310.txt
+            /tmp/calendar-v310.png
+            /tmp/settings-v310.png
+            /tmp/android-start-v310.png
+            /tmp/android-logcat-v310.txt
+          if-no-files-found: warn
+          retention-days: 7
