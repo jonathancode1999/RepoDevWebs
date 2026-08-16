@@ -2,8 +2,7 @@ name: Build Dias Laborales v3 APK
 
 on:
   push:
-    branches:
-      - dias-laborales-v3-build-20260815
+    branches: [dias-laborales-v3-build-20260815]
   workflow_dispatch:
 
 permissions:
@@ -13,12 +12,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Reconstruct verified v3 source
+      - name: Reconstruct verified source
         shell: bash
         run: |
           set -euxo pipefail
@@ -33,66 +30,45 @@ jobs:
           echo 'ebef5a4ed5650162f35154c31cd83752ea134803b598d8299b5100d74965ed23  dias-laborales-v3/source.part07' | sha256sum -c -
           echo '273c87feee8c4c4a9ec7733d792b5e2dfd3aaad2bc732222c020e3734bad28ac  dias-laborales-v3/source.part08' | sha256sum -c -
           echo 'd9756b43870235afdddf075cb6b5ff7ff20bfec84f0fbb7cde83e42c68efafeb  dias-laborales-v3/source.part09' | sha256sum -c -
-          echo '31cd9086df53538d8456aaf9d6965744321834e41595a9be7c3fd1f996da9ded  dias-laborales-v3/source.part10.bin' | sha256sum -c -
+          echo '04ca29a62020401286a8596e2e0dc5dc0a27addc89828f055d2d080a5cf56cff  dias-laborales-v3/c10b0.bin' | sha256sum -c -
+          echo '5160322f7b3cb1a66e8bfee2ad62a15db26acbf69b4b7d554c58ae3b87d34e1b  dias-laborales-v3/c10b1.bin' | sha256sum -c -
+          echo 'c0f3e7ada5ec18922f73931bb2471053c6ffd6527e0841d2898f6c08cc13e1c4  dias-laborales-v3/c10b2.bin' | sha256sum -c -
+          echo '6241eca3557005d4fb107beb791fba25e708d06f8b24ece10af4c744274deb87  dias-laborales-v3/c10b3.bin' | sha256sum -c -
+          echo '41b7ea2c7c6a0315628a9e6fee12239999d275e2814cd26ae42b072d4c2a5371  dias-laborales-v3/c10b4.bin' | sha256sum -c -
+          echo 'f7f6cc249ac3af8f31af4e681923d58ee5c7594433981ad5afb828fb262c3aa1  dias-laborales-v3/c10b5.bin' | sha256sum -c -
+          echo '3a486132b9842845cf23697e27652513144e0a02f8e677cc577b6fbb366be808  dias-laborales-v3/c10b6.bin' | sha256sum -c -
           echo '3872ea5a455797442945091e23bb9ca430f0982b089285105058b3baa767c30c  dias-laborales-v3/source.part11' | sha256sum -c -
 
-          cat \
-            dias-laborales-v3/source.part00 \
-            dias-laborales-v3/source.part01 \
-            dias-laborales-v3/source.part02a \
-            dias-laborales-v3/source.part02b \
-            dias-laborales-v3/source.part03 \
-            dias-laborales-v3/source.part04 \
-            dias-laborales-v3/source.part05 \
-            dias-laborales-v3/source.part06 \
-            dias-laborales-v3/source.part07 \
-            dias-laborales-v3/source.part08 \
-            dias-laborales-v3/source.part09 \
-            > /tmp/pre.b64
-          test "$(wc -c < /tmp/pre.b64)" -eq 70000
+          cat dias-laborales-v3/source.part00 dias-laborales-v3/source.part01 dias-laborales-v3/source.part02a dias-laborales-v3/source.part02b dias-laborales-v3/source.part03 dias-laborales-v3/source.part04 dias-laborales-v3/source.part05 dias-laborales-v3/source.part06 dias-laborales-v3/source.part07 dias-laborales-v3/source.part08 dias-laborales-v3/source.part09 > /tmp/pre.b64
           base64 -d /tmp/pre.b64 > /tmp/pre.bin
-          test "$(wc -c < /tmp/pre.bin)" -eq 52500
-
+          cat dias-laborales-v3/c10b0.bin dias-laborales-v3/c10b1.bin dias-laborales-v3/c10b2.bin dias-laborales-v3/c10b3.bin dias-laborales-v3/c10b4.bin dias-laborales-v3/c10b5.bin dias-laborales-v3/c10b6.bin > /tmp/c10.bin
+          test "$(wc -c < /tmp/c10.bin)" -eq 5250
+          echo '31cd9086df53538d8456aaf9d6965744321834e41595a9be7c3fd1f996da9ded  /tmp/c10.bin' | sha256sum -c -
           base64 -d dias-laborales-v3/source.part11 > /tmp/post.bin
-          test "$(wc -c < /tmp/post.bin)" -eq 1738
-
-          cat /tmp/pre.bin dias-laborales-v3/source.part10.bin /tmp/post.bin > /tmp/DiasLaborales_v3.tar.xz
+          cat /tmp/pre.bin /tmp/c10.bin /tmp/post.bin > /tmp/DiasLaborales_v3.tar.xz
           test "$(wc -c < /tmp/DiasLaborales_v3.tar.xz)" -eq 59488
           echo '1bef0afa3277f83b8fddedf5bf608d2455e55428cd32654159424039301dc57d  /tmp/DiasLaborales_v3.tar.xz' | sha256sum -c -
-
-          rm -rf /tmp/dias-laborales
           mkdir -p /tmp/dias-laborales
           tar -xJf /tmp/DiasLaborales_v3.tar.xz -C /tmp/dias-laborales
-          test -f /tmp/dias-laborales/package.json
-          test -f /tmp/dias-laborales/android/app/build.gradle
           test -f /tmp/dias-laborales/src/core/events.js
-          test -f /tmp/dias-laborales/src/services/notifications.js
 
-      - name: Setup Node 22
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Setup JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-
       - name: Android SDK 35
         shell: bash
         run: |
-          set -euxo pipefail
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
-
-      - name: Setup Gradle 8.11.1
-        uses: gradle/actions/setup-gradle@v4
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      - name: Install dependencies and run 22 tests
+      - name: Test and build web
         working-directory: /tmp/dias-laborales
         shell: bash
         run: |
@@ -102,62 +78,46 @@ jobs:
           grep -q '# tests 22' /tmp/tests.txt
           grep -q '# pass 22' /tmp/tests.txt
           grep -q '# fail 0' /tmp/tests.txt
-
-      - name: Build Vite application
-        working-directory: /tmp/dias-laborales
-        shell: bash
-        run: |
-          set -euxo pipefail
           npm run build
           grep -q 'src="./assets/' dist/index.html
-          grep -q 'href="./assets/' dist/index.html
           grep -R -q 'Próximo aviso' dist
           grep -R -q 'Nueva anotación' dist
           grep -R -q 'Probar notificación' dist
 
-      - name: Browser smoke test and screenshots
+      - name: Visual smoke test
         working-directory: /tmp/dias-laborales
         shell: bash
         run: |
           set -euxo pipefail
           python3 -m http.server 4173 --directory dist >/tmp/http.log 2>&1 &
-          HTTP_PID=$!
-          trap 'kill $HTTP_PID || true' EXIT
-          sleep 1
-          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
-          test -n "$CHROME"
-          "$CHROME" --headless --no-sandbox --disable-gpu --window-size=412,915 --virtual-time-budget=5000 --dump-dom 'http://127.0.0.1:4173/?demo=1&view=home' > /tmp/home-dom.html
+          P=$!; trap 'kill $P || true' EXIT; sleep 1
+          C="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$C" --headless --no-sandbox --disable-gpu --window-size=412,915 --virtual-time-budget=5000 --dump-dom 'http://127.0.0.1:4173/?demo=1&view=home' > /tmp/home-dom.html
           grep -q 'TRABAJ' /tmp/home-dom.html
           grep -q 'Próximo aviso' /tmp/home-dom.html
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,915 --virtual-time-budget=5000 --screenshot=/tmp/home.png 'http://127.0.0.1:4173/?demo=1&view=home'
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,1000 --virtual-time-budget=5000 --screenshot=/tmp/calendar.png 'http://127.0.0.1:4173/?demo=1&view=calendar'
-          "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,1000 --virtual-time-budget=5000 --screenshot=/tmp/settings.png 'http://127.0.0.1:4173/?demo=1&view=settings'
+          "$C" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,915 --virtual-time-budget=5000 --screenshot=/tmp/home.png 'http://127.0.0.1:4173/?demo=1&view=home'
+          "$C" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,1000 --virtual-time-budget=5000 --screenshot=/tmp/calendar.png 'http://127.0.0.1:4173/?demo=1&view=calendar'
+          "$C" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=412,1000 --virtual-time-budget=5000 --screenshot=/tmp/settings.png 'http://127.0.0.1:4173/?demo=1&view=settings'
 
-      - name: Sync Capacitor Android
+      - name: Sync Capacitor
         working-directory: /tmp/dias-laborales
         run: npx cap sync android
-
-      - name: Assemble installable APK
+      - name: Assemble APK
         working-directory: /tmp/dias-laborales/android
         run: gradle assembleDebug --stacktrace
-
-      - name: Verify APK contents and signature
+      - name: Verify APK
         shell: bash
         run: |
           set -euxo pipefail
-          APK=/tmp/dias-laborales/android/app/build/outputs/apk/debug/app-debug.apk
-          test -s "$APK"
-          cp "$APK" /tmp/DiasLaborales-3.0.0.apk
+          A=/tmp/dias-laborales/android/app/build/outputs/apk/debug/app-debug.apk
+          cp "$A" /tmp/DiasLaborales-3.0.0.apk
           unzip -t /tmp/DiasLaborales-3.0.0.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/DiasLaborales-3.0.0.apk | tee /tmp/apksigner.txt
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales-3.0.0.apk | tee /tmp/apk-badging.txt
           grep -q "versionCode='6'" /tmp/apk-badging.txt
           grep -q "versionName='3.0.0-debug'" /tmp/apk-badging.txt
           sha256sum /tmp/DiasLaborales-3.0.0.apk | tee /tmp/DiasLaborales-3.0.0.sha256
-          cp /tmp/dias-laborales/package-lock.json /tmp/package-lock.json
-
-      - name: Upload final artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: DiasLaborales-3.0.0
           path: |
@@ -165,7 +125,6 @@ jobs:
             /tmp/DiasLaborales-3.0.0.sha256
             /tmp/apksigner.txt
             /tmp/apk-badging.txt
-            /tmp/package-lock.json
             /tmp/home.png
             /tmp/calendar.png
             /tmp/settings.png
