@@ -130,7 +130,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            set -euxo pipefail
+            set -eu
             adb install /tmp/DiasLaborales-3.0.1.apk
             adb shell pm clear com.lyjdesarrollos.diaslaborales
             adb logcat -c
