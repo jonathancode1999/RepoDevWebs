@@ -75,8 +75,8 @@ jobs:
           set -euxo pipefail
           npm install
           npm test | tee /tmp/tests.txt
-          grep -q '# tests 22' /tmp/tests.txt
-          grep -q '# pass 22' /tmp/tests.txt
+          grep -q '# tests 23' /tmp/tests.txt
+          grep -q '# pass 23' /tmp/tests.txt
           grep -q '# fail 0' /tmp/tests.txt
           npm run build
           grep -q 'src="./assets/' dist/index.html
