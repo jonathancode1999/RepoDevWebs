@@ -1,0 +1,63 @@
+--- a/android/app/build.gradle	2026-08-17 18:56:22.000000000 +0000
++++ b/android/app/build.gradle	2026-08-17 21:15:19.293204684 +0000
+@@ -8,8 +8,8 @@
+         applicationId "com.lyjdesarrollos.diaslaborales"
+         minSdkVersion rootProject.ext.minSdkVersion
+         targetSdkVersion rootProject.ext.targetSdkVersion
+-        versionCode 11
+-        versionName "3.2.2"
++        versionCode 100
++        versionName "1.0.0"
+         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+         aaptOptions {
+             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+--- a/index.html	2026-08-17 18:56:22.000000000 +0000
++++ b/index.html	2026-08-17 21:15:19.293368312 +0000
+@@ -51,7 +51,7 @@
+       <aside class="project-promo" aria-label="Colaboración y desarrollo">
+         <button class="promo-action promo-support" type="button" data-support-link>
+           <span class="promo-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.2 4.8 13.4a4.7 4.7 0 0 1 6.6-6.7L12 7.3l.6-.6a4.7 4.7 0 0 1 6.6 6.7Z"/></svg></span>
+-          <span><strong>Apoyá Días Laborales</strong><small>Colaborá con el proyecto</small></span>
++          <span><strong>Apoyá Días Laborales</strong><small>Tu colaboración ayuda a mantener y seguir mejorando la app</small></span>
+         </button>
+         <button class="promo-action promo-lyj" type="button" data-lyj-link>
+           <span class="promo-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8"/><path d="M12 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-6"/></svg></span>
+@@ -156,9 +156,6 @@
+               </div>
+               <p id="notification-help" class="settings-help"></p>
+               <div class="settings-actions">
+-                <button id="test-notification" class="outline-button" type="button">Probar aviso en 10 segundos</button>
+-                <button id="open-app-settings" class="link-button align-left" type="button">Abrir ajustes de Android</button>
+-                <button id="exact-alarm-settings" class="link-button align-left" type="button">Revisar precisión de alarmas</button>
+               </div>
+             </section>
+ 
+--- a/package.json	2026-08-17 18:56:22.000000000 +0000
++++ b/package.json	2026-08-17 21:15:19.291838114 +0000
+@@ -1,7 +1,7 @@
+ {
+   "name": "dias-laborales",
+   "private": true,
+-  "version": "3.2.2",
++  "version": "1.0.0",
+   "type": "module",
+   "scripts": {
+     "dev": "vite --host 0.0.0.0",
+--- a/src/main.js	2026-08-17 18:56:22.000000000 +0000
++++ b/src/main.js	2026-08-17 21:15:19.293541401 +0000
+@@ -299,15 +299,6 @@
+   }));
+ 
+   byId('settings-form').addEventListener('submit', saveSettingsFromForm);
+-  byId('open-app-settings').addEventListener('click', async () => {
+-    const opened = await openNativeAppSettings();
+-    if (!opened) showToast('Los ajustes de Android sólo están disponibles en la APK.', 'info');
+-  });
+-  byId('exact-alarm-settings').addEventListener('click', async () => {
+-    const opened = await openExactAlarmSettings();
+-    if (!opened) showToast('No se pudo abrir la precisión de alarmas.', 'info');
+-  });
+-  byId('test-notification').addEventListener('click', testNotificationNow);
+   document.querySelectorAll('[data-support-link]').forEach(button => button.addEventListener('click', async () => {
+     if (!await openExternalUrl('https://mpago.la/1oYkso5')) showToast('No se pudo abrir el link de colaboración.', 'error');
+   }));
