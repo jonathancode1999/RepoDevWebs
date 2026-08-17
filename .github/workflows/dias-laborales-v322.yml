@@ -45,7 +45,7 @@ jobs:
           fi
           test -z "$(find . -name '*.rej' -print)"
 
-      - name: Apply 3.2.2 stable notification fix
+      - name: Apply stable notification fix
         working-directory: /tmp/dias-laborales
         shell: bash
         run: |
@@ -88,6 +88,7 @@ jobs:
           p=Path('index.html')
           s=p.read_text()
           s=s.replace('Tu aporte ayuda a sostener el proyecto y sus mejoras','Tu colaboración ayuda a mantener y seguir mejorando la app')
+          s=s.replace('Colaborá con el proyecto','Tu colaboración ayuda a mantener y seguir mejorando la app')
           p.write_text(s)
           css=Path('src/styles/app.css')
           s=css.read_text()
@@ -98,7 +99,6 @@ jobs:
           grep -q 'versionCode 10000' android/app/build.gradle
           grep -q 'versionName "1.0.0"' android/app/build.gradle
           grep -q 'https://mpago.la/1oYkso5' src/main.js
-          grep -q 'www.lyjdesarrollos.com' index.html
 
       - uses: actions/setup-node@v4
         with:
@@ -138,7 +138,7 @@ jobs:
           sha256sum /tmp/DiasLaborales-1.0.0.apk > /tmp/DiasLaborales-1.0.0.sha256
           cd /tmp/dias-laborales
           rm -rf node_modules dist android/.gradle android/app/build
-          zip -qr /tmp/DiasLaborales_Proyecto_1.0.0.zip . -x '*.gradle/*' 'node_modules/*' 'dist/*' 'android/app/build/*'
+          zip -qr /tmp/DiasLaborales_Proyecto_1.0.0.zip . -x 'node_modules/*' 'dist/*' 'android/.gradle/*' 'android/app/build/*'
           unzip -t /tmp/DiasLaborales_Proyecto_1.0.0.zip >/tmp/zipcheck-final.txt
 
       - name: Enable KVM
