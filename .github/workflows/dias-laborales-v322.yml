@@ -1,4 +1,4 @@
-name: Build Dias Laborales 3.2.2
+name: Build Dias Laborales 1.0.0 FINAL
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Reconstruct 3.2.1 base
+      - name: Reconstruct working source
         shell: bash
         run: |
           set -euxo pipefail
@@ -44,7 +44,8 @@ jobs:
             rm -f package-lock.json.rej
           fi
           test -z "$(find . -name '*.rej' -print)"
-      - name: Apply 3.2.2 changes
+
+      - name: Apply 3.2.2 stable notification fix
         working-directory: /tmp/dias-laborales
         shell: bash
         run: |
@@ -59,8 +60,46 @@ jobs:
           fi
           test -z "$(find . -name '*.rej' -print)"
           node -e "const fs=require('fs');const p='package-lock.json';const j=JSON.parse(fs.readFileSync(p));j.version='3.2.2';if(j.packages&&j.packages[''])j.packages[''].version='3.2.2';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n')"
-          grep -q '"version": "3.2.2"' package.json
+
+      - name: Finalize public version 1.0.0
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+          pkg.version='1.0.0';
+          fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');
+          const lock=JSON.parse(fs.readFileSync('package-lock.json','utf8'));
+          lock.version='1.0.0';
+          if(lock.packages&&lock.packages['']) lock.packages[''].version='1.0.0';
+          fs.writeFileSync('package-lock.json',JSON.stringify(lock,null,2)+'\n');
+          NODE
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          g=Path('android/app/build.gradle')
+          s=g.read_text()
+          s=re.sub(r'versionCode\s+\d+','versionCode 10000',s,count=1)
+          s=re.sub(r'versionName\s+"[^"]+"','versionName "1.0.0"',s,count=1)
+          s=s.replace('            versionNameSuffix "-debug"\n','')
+          g.write_text(s)
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('Tu aporte ayuda a sostener el proyecto y sus mejoras','Tu colaboración ayuda a mantener y seguir mejorando la app')
+          p.write_text(s)
+          css=Path('src/styles/app.css')
+          s=css.read_text()
+          s += '''\n/* 1.0.0 final · controles técnicos ocultos */\n.diagnostics, #notification-help, #test-notification, #open-app-settings, #exact-alarm-settings { display:none !important; }\n'''
+          css.write_text(s)
+          PY
+          grep -q '"version": "1.0.0"' package.json
+          grep -q 'versionCode 10000' android/app/build.gradle
+          grep -q 'versionName "1.0.0"' android/app/build.gradle
           grep -q 'https://mpago.la/1oYkso5' src/main.js
+          grep -q 'www.lyjdesarrollos.com' index.html
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -79,8 +118,8 @@ jobs:
         working-directory: /tmp/dias-laborales
         run: |
           npm install
-          npm test | tee /tmp/tests-v322.txt
-          grep -q '# fail 0' /tmp/tests-v322.txt
+          npm test | tee /tmp/tests-final.txt
+          grep -q '# fail 0' /tmp/tests-final.txt
       - name: Build web and sync
         working-directory: /tmp/dias-laborales
         run: |
@@ -88,20 +127,26 @@ jobs:
           npx cap sync android
       - name: Build and verify APK
         run: |
+          set -euxo pipefail
           cd /tmp/dias-laborales/android
           gradle assembleDebug --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk /tmp/DiasLaborales-3.2.2.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/DiasLaborales-3.2.2.apk > /tmp/apksigner-v322.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales-3.2.2.apk > /tmp/badging-v322.txt
-          grep -q "versionCode='11'" /tmp/badging-v322.txt
-          grep -q "versionName='3.2.2-debug'" /tmp/badging-v322.txt
-          sha256sum /tmp/DiasLaborales-3.2.2.apk > /tmp/DiasLaborales-3.2.2.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/DiasLaborales-1.0.0.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/DiasLaborales-1.0.0.apk > /tmp/apksigner-final.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales-1.0.0.apk > /tmp/badging-final.txt
+          grep -q "versionCode='10000'" /tmp/badging-final.txt
+          grep -q "versionName='1.0.0'" /tmp/badging-final.txt
+          sha256sum /tmp/DiasLaborales-1.0.0.apk > /tmp/DiasLaborales-1.0.0.sha256
+          cd /tmp/dias-laborales
+          rm -rf node_modules dist android/.gradle android/app/build
+          zip -qr /tmp/DiasLaborales_Proyecto_1.0.0.zip . -x '*.gradle/*' 'node_modules/*' 'dist/*' 'android/app/build/*'
+          unzip -t /tmp/DiasLaborales_Proyecto_1.0.0.zip >/tmp/zipcheck-final.txt
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm || true
-      - name: Verify exact alarm in Doze after process kill
+      - name: Verify notification in Doze after process kill
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -112,7 +157,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
             set -eux
-            adb install /tmp/DiasLaborales-3.2.2.apk
+            adb install /tmp/DiasLaborales-1.0.0.apk
             adb shell pm grant com.lyjdesarrollos.diaslaborales android.permission.POST_NOTIFICATIONS || true
             adb shell monkey -p com.lyjdesarrollos.diaslaborales -c android.intent.category.LAUNCHER 1
             sleep 4
@@ -122,19 +167,21 @@ jobs:
             adb shell am kill com.lyjdesarrollos.diaslaborales
             adb shell dumpsys deviceidle force-idle || true
             sleep 32
-            adb shell dumpsys notification --noredact > /tmp/native-notifications-v322.txt
-            grep -q 'Prueba nativa en segundo plano' /tmp/native-notifications-v322.txt
+            adb shell dumpsys notification --noredact > /tmp/native-notifications-final.txt
+            grep -q 'Prueba nativa en segundo plano' /tmp/native-notifications-final.txt
             adb shell dumpsys deviceidle unforce || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: DiasLaborales-3.2.2-FINAL
+          name: DiasLaborales-1.0.0-FINAL
           path: |
-            /tmp/DiasLaborales-3.2.2.apk
-            /tmp/DiasLaborales-3.2.2.sha256
-            /tmp/apksigner-v322.txt
-            /tmp/badging-v322.txt
-            /tmp/tests-v322.txt
-            /tmp/native-notifications-v322.txt
+            /tmp/DiasLaborales-1.0.0.apk
+            /tmp/DiasLaborales_Proyecto_1.0.0.zip
+            /tmp/DiasLaborales-1.0.0.sha256
+            /tmp/apksigner-final.txt
+            /tmp/badging-final.txt
+            /tmp/tests-final.txt
+            /tmp/native-notifications-final.txt
+            /tmp/zipcheck-final.txt
           if-no-files-found: warn
           retention-days: 7
