@@ -2,7 +2,7 @@ name: Build Dias Laborales 3.3.0
 
 on:
   push:
-    branches: [dias-laborales-v3-build-20260815]
+    branches: [dias-laborales-v330-final-20260817]
   workflow_dispatch:
 
 permissions:
@@ -46,7 +46,23 @@ jobs:
             rm -f package-lock.json.rej
           fi
           test -z "$(find . -name '*.rej' -print)"
+          set +e
           patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v330-dedupe-support.patch"
+          V330_STATUS=$?
+          set -e
+          if [ "$V330_STATUS" -ne 0 ]; then
+            REJECTS="$(find . -name '*.rej' -print)"
+            test "$REJECTS" = './package-lock.json.rej'
+            rm -f package-lock.json.rej
+          fi
+          test -z "$(find . -name '*.rej' -print)"
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          p.version = '3.3.0';
+          if (p.packages && p.packages['']) p.packages[''].version = '3.3.0';
+          fs.writeFileSync('package-lock.json', JSON.stringify(p, null, 2) + '\n');
+          NODE
           grep -q '"version": "3.3.0"' package.json
           grep -q 'versionCode 11' android/app/build.gradle
           grep -q 'android.permission.USE_EXACT_ALARM' android/app/src/main/AndroidManifest.xml
