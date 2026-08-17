@@ -34,7 +34,7 @@ jobs:
           echo '48e4927602ea4f9f90c1f49f977d59606b800be03db4f5e416611eeea893acfb  /tmp/v320.b64' | sha256sum -c -
           base64 -d /tmp/v320.b64 | gzip -d > /tmp/v320.patch
           patch -p1 < /tmp/v320.patch
-          patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v320-workalarm-json-fix.patch"
+          patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v320-javafix.patch"
           base64 -d "$GITHUB_WORKSPACE/dias-laborales-v3/v321-exact-lyj.b64" | gzip -d > /tmp/v321.patch
           echo 'd997544fd463e36114aaa0bcc103f68f7e4051647c6185643ba6d5fcc30fb3b0  /tmp/v321.patch' | sha256sum -c -
           patch -p1 < /tmp/v321.patch
@@ -93,7 +93,6 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales-3.2.1.apk | tee /tmp/badging-v321.txt
           grep -q "versionCode='10'" /tmp/badging-v321.txt
           grep -q "versionName='3.2.1-debug'" /tmp/badging-v321.txt
-          unzip -p /tmp/DiasLaborales-3.2.1.apk AndroidManifest.xml >/dev/null
           sha256sum /tmp/DiasLaborales-3.2.1.apk | tee /tmp/DiasLaborales-3.2.1.sha256
           cd /tmp/dias-laborales
           tar --exclude='./node_modules' --exclude='./android/.gradle' --exclude='./android/app/build' -czf /tmp/DiasLaborales-3.2.1-source.tar.gz .
