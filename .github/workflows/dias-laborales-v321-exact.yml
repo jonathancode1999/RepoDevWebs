@@ -35,7 +35,8 @@ jobs:
           base64 -d /tmp/v320.b64 | gzip -d > /tmp/v320.patch
           patch -p1 < /tmp/v320.patch
           patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v320-javafix.patch"
-          base64 -d "$GITHUB_WORKSPACE/dias-laborales-v3/v321-exact-lyj.b64" | gzip -d > /tmp/v321.patch
+          echo '7b1138ae0d9ce837da5fcd61f876389811b04e4a41fdc77ec2ec4a4793269923  '$GITHUB_WORKSPACE'/dias-laborales-v3/v321-exact-lyj.patch.gz' | sha256sum -c -
+          gzip -dc "$GITHUB_WORKSPACE/dias-laborales-v3/v321-exact-lyj.patch.gz" > /tmp/v321.patch
           echo 'd997544fd463e36114aaa0bcc103f68f7e4051647c6185643ba6d5fcc30fb3b0  /tmp/v321.patch' | sha256sum -c -
           patch -p1 < /tmp/v321.patch
           grep -q '"version": "3.2.1"' package.json
