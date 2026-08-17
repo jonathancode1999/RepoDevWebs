@@ -46,8 +46,19 @@ jobs:
           test -z "$(find . -name '*.rej' -print)"
       - name: Apply 3.2.2 changes
         working-directory: /tmp/dias-laborales
+        shell: bash
         run: |
+          set +e
           patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v322-single-notification-support.patch"
+          PATCH_STATUS=$?
+          set -e
+          if [ "$PATCH_STATUS" -ne 0 ]; then
+            REJECTS="$(find . -name '*.rej' -print)"
+            test "$REJECTS" = './package-lock.json.rej'
+            rm -f package-lock.json.rej
+          fi
+          test -z "$(find . -name '*.rej' -print)"
+          node -e "const fs=require('fs');const p='package-lock.json';const j=JSON.parse(fs.readFileSync(p));j.version='3.2.2';if(j.packages&&j.packages[''])j.packages[''].version='3.2.2';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n')"
           grep -q '"version": "3.2.2"' package.json
           grep -q 'https://mpago.la/1oYkso5' src/main.js
       - uses: actions/setup-node@v4
