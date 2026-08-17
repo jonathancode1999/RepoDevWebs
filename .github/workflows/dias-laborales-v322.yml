@@ -1,0 +1,129 @@
+name: Build Dias Laborales 3.2.2
+
+on:
+  push:
+    branches: [dias-laborales-v3-build-20260815]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct 3.2.1 base
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat dias-laborales-v3/source.part00 dias-laborales-v3/source.part01 dias-laborales-v3/source.part02a dias-laborales-v3/source.part02b dias-laborales-v3/source.part03 dias-laborales-v3/source.part04 dias-laborales-v3/source.part05 dias-laborales-v3/source.part06 dias-laborales-v3/source.part07 dias-laborales-v3/source.part08 dias-laborales-v3/source.part09 > /tmp/pre.b64
+          base64 -d /tmp/pre.b64 > /tmp/pre.bin
+          cat dias-laborales-v3/c10b0.bin dias-laborales-v3/c10b1.bin dias-laborales-v3/c10b2.bin dias-laborales-v3/c10b3.bin dias-laborales-v3/c10b4.bin dias-laborales-v3/c10b5.bin dias-laborales-v3/c10b6.bin > /tmp/c10.bin
+          base64 -d dias-laborales-v3/source.part11 > /tmp/post.bin
+          cat /tmp/pre.bin /tmp/c10.bin /tmp/post.bin > /tmp/DiasLaborales_v3.tar.xz
+          echo '1bef0afa3277f83b8fddedf5bf608d2455e55428cd32654159424039301dc57d  /tmp/DiasLaborales_v3.tar.xz' | sha256sum -c -
+          mkdir -p /tmp/dias-laborales
+          tar -xJf /tmp/DiasLaborales_v3.tar.xz -C /tmp/dias-laborales
+          cd /tmp/dias-laborales
+          patch -p2 < "$GITHUB_WORKSPACE/dias-laborales-v3/v301-safe-boot.patch"
+          patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v310-notifications-calendar-support.patch"
+          cat "$GITHUB_WORKSPACE/dias-laborales-v3/v320-background.part0" "$GITHUB_WORKSPACE/dias-laborales-v3/v320-background.part1" "$GITHUB_WORKSPACE/dias-laborales-v3/v320-background.part2" > /tmp/v320.b64
+          base64 -d /tmp/v320.b64 | gzip -d > /tmp/v320.patch
+          patch -p1 < /tmp/v320.patch
+          patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v320-javafix.patch"
+          gzip -dc "$GITHUB_WORKSPACE/dias-laborales-v3/v321-exact-lyj.patch.gz" > /tmp/v321.patch
+          set +e
+          patch -p4 < /tmp/v321.patch
+          PATCH_STATUS=$?
+          set -e
+          if [ "$PATCH_STATUS" -ne 0 ]; then
+            REJECTS="$(find . -name '*.rej' -print)"
+            test "$REJECTS" = './package-lock.json.rej'
+            rm -f package-lock.json.rej
+          fi
+          test -z "$(find . -name '*.rej' -print)"
+      - name: Apply 3.2.2 changes
+        working-directory: /tmp/dias-laborales
+        run: |
+          patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v322-single-notification-support.patch"
+          grep -q '"version": "3.2.2"' package.json
+          grep -q 'https://mpago.la/1oYkso5' src/main.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Install and test
+        working-directory: /tmp/dias-laborales
+        run: |
+          npm install
+          npm test | tee /tmp/tests-v322.txt
+          grep -q '# fail 0' /tmp/tests-v322.txt
+      - name: Build web and sync
+        working-directory: /tmp/dias-laborales
+        run: |
+          npm run build
+          npx cap sync android
+      - name: Build and verify APK
+        run: |
+          cd /tmp/dias-laborales/android
+          gradle assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/DiasLaborales-3.2.2.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/DiasLaborales-3.2.2.apk > /tmp/apksigner-v322.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales-3.2.2.apk > /tmp/badging-v322.txt
+          grep -q "versionCode='11'" /tmp/badging-v322.txt
+          grep -q "versionName='3.2.2-debug'" /tmp/badging-v322.txt
+          sha256sum /tmp/DiasLaborales-3.2.2.apk > /tmp/DiasLaborales-3.2.2.sha256
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+      - name: Verify exact alarm in Doze after process kill
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            set -eux
+            adb install /tmp/DiasLaborales-3.2.2.apk
+            adb shell pm grant com.lyjdesarrollos.diaslaborales android.permission.POST_NOTIFICATIONS || true
+            adb shell monkey -p com.lyjdesarrollos.diaslaborales -c android.intent.category.LAUNCHER 1
+            sleep 4
+            adb shell am start -n com.lyjdesarrollos.diaslaborales/.MainActivity --el native_alarm_test_ms 25000
+            sleep 2
+            adb shell input keyevent KEYCODE_HOME
+            adb shell am kill com.lyjdesarrollos.diaslaborales
+            adb shell dumpsys deviceidle force-idle || true
+            sleep 32
+            adb shell dumpsys notification --noredact > /tmp/native-notifications-v322.txt
+            grep -q 'Prueba nativa en segundo plano' /tmp/native-notifications-v322.txt
+            adb shell dumpsys deviceidle unforce || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DiasLaborales-3.2.2-FINAL
+          path: |
+            /tmp/DiasLaborales-3.2.2.apk
+            /tmp/DiasLaborales-3.2.2.sha256
+            /tmp/apksigner-v322.txt
+            /tmp/badging-v322.txt
+            /tmp/tests-v322.txt
+            /tmp/native-notifications-v322.txt
+          if-no-files-found: warn
+          retention-days: 7
