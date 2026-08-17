@@ -38,7 +38,16 @@ jobs:
           echo '7b1138ae0d9ce837da5fcd61f876389811b04e4a41fdc77ec2ec4a4793269923  '$GITHUB_WORKSPACE'/dias-laborales-v3/v321-exact-lyj.patch.gz' | sha256sum -c -
           gzip -dc "$GITHUB_WORKSPACE/dias-laborales-v3/v321-exact-lyj.patch.gz" > /tmp/v321.patch
           echo 'd997544fd463e36114aaa0bcc103f68f7e4051647c6185643ba6d5fcc30fb3b0  /tmp/v321.patch' | sha256sum -c -
-          patch -p4 --exclude=package-lock.json < /tmp/v321.patch
+          set +e
+          patch -p4 < /tmp/v321.patch
+          PATCH_STATUS=$?
+          set -e
+          if [ "$PATCH_STATUS" -ne 0 ]; then
+            REJECTS="$(find . -name '*.rej' -print)"
+            test "$REJECTS" = './package-lock.json.rej'
+            rm -f package-lock.json.rej
+          fi
+          test -z "$(find . -name '*.rej' -print)"
           grep -q '"version": "3.2.1"' package.json
           grep -q 'versionCode 10' android/app/build.gradle
           grep -q 'android.permission.USE_EXACT_ALARM' android/app/src/main/AndroidManifest.xml
