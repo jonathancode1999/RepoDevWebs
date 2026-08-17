@@ -1,0 +1,171 @@
+name: Build Dias Laborales 1.0.0 FINAL
+
+on:
+  push:
+    branches: [dias-laborales-v3-build-20260815]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct current stable source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat dias-laborales-v3/source.part00 dias-laborales-v3/source.part01 dias-laborales-v3/source.part02a dias-laborales-v3/source.part02b dias-laborales-v3/source.part03 dias-laborales-v3/source.part04 dias-laborales-v3/source.part05 dias-laborales-v3/source.part06 dias-laborales-v3/source.part07 dias-laborales-v3/source.part08 dias-laborales-v3/source.part09 > /tmp/pre.b64
+          base64 -d /tmp/pre.b64 > /tmp/pre.bin
+          cat dias-laborales-v3/c10b0.bin dias-laborales-v3/c10b1.bin dias-laborales-v3/c10b2.bin dias-laborales-v3/c10b3.bin dias-laborales-v3/c10b4.bin dias-laborales-v3/c10b5.bin dias-laborales-v3/c10b6.bin > /tmp/c10.bin
+          base64 -d dias-laborales-v3/source.part11 > /tmp/post.bin
+          cat /tmp/pre.bin /tmp/c10.bin /tmp/post.bin > /tmp/DiasLaborales_v3.tar.xz
+          echo '1bef0afa3277f83b8fddedf5bf608d2455e55428cd32654159424039301dc57d  /tmp/DiasLaborales_v3.tar.xz' | sha256sum -c -
+          mkdir -p /tmp/dias-laborales
+          tar -xJf /tmp/DiasLaborales_v3.tar.xz -C /tmp/dias-laborales
+          cd /tmp/dias-laborales
+          patch -p2 < "$GITHUB_WORKSPACE/dias-laborales-v3/v301-safe-boot.patch"
+          patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v310-notifications-calendar-support.patch"
+          cat "$GITHUB_WORKSPACE/dias-laborales-v3/v320-background.part0" "$GITHUB_WORKSPACE/dias-laborales-v3/v320-background.part1" "$GITHUB_WORKSPACE/dias-laborales-v3/v320-background.part2" > /tmp/v320.b64
+          base64 -d /tmp/v320.b64 | gzip -d > /tmp/v320.patch
+          patch -p1 < /tmp/v320.patch
+          patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v320-javafix.patch"
+          gzip -dc "$GITHUB_WORKSPACE/dias-laborales-v3/v321-exact-lyj.patch.gz" > /tmp/v321.patch
+          set +e
+          patch -p4 < /tmp/v321.patch
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            REJECTS="$(find . -name '*.rej' -print)"
+            test "$REJECTS" = './package-lock.json.rej'
+            rm -f package-lock.json.rej
+          fi
+          set +e
+          patch -p1 < "$GITHUB_WORKSPACE/dias-laborales-v3/v322-single-notification-support.patch"
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            REJECTS="$(find . -name '*.rej' -print)"
+            test "$REJECTS" = './package-lock.json.rej'
+            rm -f package-lock.json.rej
+          fi
+          test -z "$(find . -name '*.rej' -print)"
+
+      - name: Finalize public 1.0.0 UI
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          root=Path('.')
+          p=root/'package.json'; j=json.loads(p.read_text()); j['version']='1.0.0'; p.write_text(json.dumps(j,ensure_ascii=False,indent=2)+'\n')
+          p=root/'package-lock.json'; j=json.loads(p.read_text()); j['version']='1.0.0'; j['packages']['']['version']='1.0.0'; p.write_text(json.dumps(j,ensure_ascii=False,indent=2)+'\n')
+          p=root/'android/app/build.gradle'; s=p.read_text(); s=s.replace('versionCode 11','versionCode 12').replace('versionName "3.2.2"','versionName "1.0.0"').replace('            versionNameSuffix "-debug"\n',''); p.write_text(s)
+          p=root/'index.html'; s=p.read_text()
+          block='''              <div class="diagnostics" aria-label="Diagnóstico de notificaciones">\n                <div><span>Permiso</span><strong id="diag-permission">—</strong></div>\n                <div><span>Precisión</span><strong id="diag-exact">—</strong></div>\n                <div><span>Programados</span><strong id="diag-pending">—</strong></div>\n                <div><span>Próximo aviso</span><strong id="diag-next">—</strong></div>\n              </div>\n              <p id="notification-help" class="settings-help"></p>\n              <div class="settings-actions">\n                <button id="test-notification" class="outline-button" type="button">Probar aviso en 10 segundos</button>\n                <button id="open-app-settings" class="link-button align-left" type="button">Abrir ajustes de Android</button>\n                <button id="exact-alarm-settings" class="link-button align-left" type="button">Revisar precisión de alarmas</button>\n              </div>\n'''
+          assert block in s
+          s=s.replace(block,'')
+          s=s.replace('<span><strong>Apoyá Días Laborales</strong><small>Colaborá con el proyecto</small></span>','<span><strong>Apoyá Días Laborales</strong><small>Tu aporte ayuda a sostener el proyecto y sus mejoras</small></span>')
+          s=s.replace('Después vas a poder probarlo desde Ajustes.','Podés cambiar esta hora cuando quieras desde Ajustes.')
+          p.write_text(s)
+          p=root/'src/main.js'; s=p.read_text()
+          bind="""  byId('open-app-settings').addEventListener('click', async () => {\n    const opened = await openNativeAppSettings();\n    if (!opened) showToast('Los ajustes de Android sólo están disponibles en la APK.', 'info');\n  });\n  byId('exact-alarm-settings').addEventListener('click', async () => {\n    const opened = await openExactAlarmSettings();\n    if (!opened) showToast('No se pudo abrir la precisión de alarmas.', 'info');\n  });\n  byId('test-notification').addEventListener('click', testNotificationNow);\n"""
+          assert bind in s
+          s=s.replace(bind,'')
+          diag="""  byId('diag-permission').textContent = diagnostics.permission === 'granted' ? 'Concedido' : diagnostics.permission === 'denied' ? 'Bloqueado' : 'Pendiente';\n  byId('diag-exact').textContent = diagnostics.exact === 'granted' ? 'Exacta' : diagnostics.exact === 'denied' ? 'Flexible' : 'Sin confirmar';\n  byId('diag-pending').textContent = isNativeAndroid() ? String(diagnostics.pendingCount) : `${diagnostics.plannedCount} previstos`;\n  byId('diag-next').textContent = diagnostics.next ? formatAlertDate(new Date(diagnostics.next.schedule.at)) : 'Ninguno';\n\n  const help = byId('notification-help');\n  if (!isNativeAndroid()) {\n    help.textContent = 'En la APK se muestra aquí el estado real de Android.';\n  } else if (diagnostics.permission !== 'granted') {\n    help.textContent = 'Android tiene bloqueadas las notificaciones. Abrí los ajustes del sistema para habilitarlas.';\n  } else if (diagnostics.exact !== 'granted') {\n    help.textContent = 'Los avisos están habilitados, pero Android puede demorarlos algunos minutos porque la precisión exacta no está concedida.';\n  } else if (diagnostics.plannedCount > 0 && diagnostics.pendingCount === 0) {\n    help.textContent = 'Hay avisos previstos pero Android todavía no informa alarmas pendientes. Guardá los ajustes o probá un aviso.';\n  } else {\n    help.textContent = 'Notificaciones listas. Podés comprobarlas con el botón de prueba.';\n  }\n"""
+          assert diag in s
+          s=s.replace(diag,'')
+          s=s.replace('applyNativeStatusBar, getAppPlugin, hideNativeSplash, isNativeAndroid, openExternalUrl, openNativeAppSettings','applyNativeStatusBar, getAppPlugin, hideNativeSplash, isNativeAndroid, openExternalUrl')
+          s=s.replace('  openExactAlarmSettings,\n','').replace('  scheduleTestNotification\n','').replace('  rescheduleAllNotifications,\n} from','  rescheduleAllNotifications\n} from')
+          a=s.find('async function testNotificationNow() {'); b=s.find('\nasync function exportBackup()',a)
+          if a >= 0 and b > a: s=s[:a]+s[b+1:]
+          p.write_text(s)
+          PY
+          grep -q '"version": "1.0.0"' package.json
+          grep -q 'versionName "1.0.0"' android/app/build.gradle
+          ! grep -q 'test-notification' index.html
+          ! grep -q 'diag-pending' index.html
+          grep -q 'https://mpago.la/1oYkso5' src/main.js
+          grep -q 'Tu aporte ayuda a sostener el proyecto y sus mejoras' index.html
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Install, test and build web
+        working-directory: /tmp/dias-laborales
+        run: |
+          npm install
+          npm test | tee /tmp/tests-v100.txt
+          grep -q '# fail 0' /tmp/tests-v100.txt
+          npm run build
+          npx cap sync android
+          zip -qr /tmp/DiasLaborales_Proyecto_1.0.0.zip . -x 'node_modules/*' 'dist/*' 'android/.gradle/*' 'android/app/build/*' '.git/*' '*.orig' '*.rej'
+      - name: Build and verify APK
+        run: |
+          cd /tmp/dias-laborales/android
+          gradle assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/DiasLaborales-1.0.0.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/DiasLaborales-1.0.0.apk > /tmp/apksigner-v100.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales-1.0.0.apk > /tmp/badging-v100.txt
+          grep -q "versionCode='12'" /tmp/badging-v100.txt
+          grep -q "versionName='1.0.0'" /tmp/badging-v100.txt
+          sha256sum /tmp/DiasLaborales-1.0.0.apk > /tmp/DiasLaborales-1.0.0.sha256
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+      - name: Verify notification survives process kill and Doze
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            set -eux
+            adb install /tmp/DiasLaborales-1.0.0.apk
+            adb shell pm grant com.lyjdesarrollos.diaslaborales android.permission.POST_NOTIFICATIONS || true
+            adb shell monkey -p com.lyjdesarrollos.diaslaborales -c android.intent.category.LAUNCHER 1
+            sleep 4
+            adb shell am start -n com.lyjdesarrollos.diaslaborales/.MainActivity --el native_alarm_test_ms 25000
+            sleep 2
+            adb shell input keyevent KEYCODE_HOME
+            adb shell am kill com.lyjdesarrollos.diaslaborales
+            adb shell dumpsys deviceidle force-idle || true
+            sleep 32
+            adb shell dumpsys notification --noredact > /tmp/native-notifications-v100.txt
+            grep -q 'Prueba nativa en segundo plano' /tmp/native-notifications-v100.txt
+            adb shell dumpsys deviceidle unforce || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DiasLaborales-1.0.0-FINAL
+          path: |
+            /tmp/DiasLaborales-1.0.0.apk
+            /tmp/DiasLaborales-1.0.0.sha256
+            /tmp/DiasLaborales_Proyecto_1.0.0.zip
+            /tmp/apksigner-v100.txt
+            /tmp/badging-v100.txt
+            /tmp/tests-v100.txt
+            /tmp/native-notifications-v100.txt
+          if-no-files-found: warn
+          retention-days: 7
