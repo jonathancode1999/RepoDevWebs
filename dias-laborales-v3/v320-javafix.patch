@@ -1,0 +1,24 @@
+--- a/android/app/src/main/java/com/lyjdesarrollos/diaslaborales/WorkAlarmPlugin.java
++++ b/android/app/src/main/java/com/lyjdesarrollos/diaslaborales/WorkAlarmPlugin.java
+@@ -33,11 +33,19 @@ public class WorkAlarmPlugin extends Plugin {
+ 
+     @PluginMethod
+     public void getStatus(PluginCall call) {
+-        call.resolve(JSObject.fromJSONObject(WorkAlarmScheduler.status(getContext())));
++        try {
++            call.resolve(JSObject.fromJSONObject(WorkAlarmScheduler.status(getContext())));
++        } catch (JSONException error) {
++            call.reject("No se pudo leer el estado de las alarmas nativas.", error);
++        }
+     }
+ 
+     @PluginMethod
+     public void consumeNotificationClick(PluginCall call) {
+-        call.resolve(JSObject.fromJSONObject(WorkAlarmScheduler.consumeNotificationClick(getContext())));
++        try {
++            call.resolve(JSObject.fromJSONObject(WorkAlarmScheduler.consumeNotificationClick(getContext())));
++        } catch (JSONException error) {
++            call.reject("No se pudo leer la apertura desde la notificación.", error);
++        }
+     }
+ }
