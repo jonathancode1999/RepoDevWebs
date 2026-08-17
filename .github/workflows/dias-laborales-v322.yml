@@ -1,4 +1,4 @@
-name: Build Dias Laborales 1.0.0 STABLE
+name: Build Dias Laborales 1.0.0 BYTE-STABLE
 
 on:
   push:
@@ -14,7 +14,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Reconstruct stable 3.2.2 source
+
+      - name: Reconstruct exact stable 3.2.2 source
         shell: bash
         run: |
           set -euxo pipefail
@@ -55,7 +56,52 @@ jobs:
           fi
           test -z "$(find . -name '*.rej' -print)"
 
-      - name: Set final version without touching boot logic
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Install, test and build EXACT stable frontend
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
+          npm install
+          npm test | tee /tmp/tests-byte-stable.txt
+          grep -q '# fail 0' /tmp/tests-byte-stable.txt
+          npm run build
+          npx cap sync android
+
+      - name: Prove frontend is byte-for-byte the working 3.2.2 APK
+        working-directory: /tmp/dias-laborales/android/app/src/main/assets/public
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat > /tmp/expected-assets.sha256 <<'EOF'
+          d2bb97dec68e863d05bdad7f2f39e83c7dd18a0d05c6ea950286319e697281f6  app-icon.svg
+          7772ceb514bfe04e331f28dd2807762f816911e3b4acd3341d97b56725a6fdeb  assets/index-C2zlGF0w.js
+          4f2a537bb4aecbeb860a546f52eca1d2e70602f235b675085566db95b303e4e3  assets/index-CZ69ZapD.css
+          0106c582f803ef409d1e89afe56f9346de492aacdf589f71fe572e876729666b  assets/web-08FvhcMi.js
+          0a4058c27bfc3238d0e2a3650cf853bf4b64e51b6445e67c3891c4b7e9278781  assets/web-BqVPceG6.js
+          b9c37f3c818088337628169123d5832f49b85d0b96b571a7e4477926c8c73981  assets/web-Cy-KECHA.js
+          5de394f4ae0f9fbadd71b66fd40b89486fd9b6ae126315a49a6e0572dd27b65e  assets/web-Zc9B5085.js
+          e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  cordova.js
+          e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  cordova_plugins.js
+          42c7769420c278bd5f6419698cf490313f8e13c1e485cfe8ab9de16d3b74c0ab  index.html
+          EOF
+          sha256sum -c /tmp/expected-assets.sha256
+
+      - name: Change ONLY public version metadata to 1.0.0
         working-directory: /tmp/dias-laborales
         shell: bash
         run: |
@@ -72,62 +118,43 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-          g=Path('android/app/build.gradle')
-          s=g.read_text()
-          s=re.sub(r'versionCode\s+\d+','versionCode 10001',s,count=1)
+          p=Path('android/app/build.gradle')
+          s=p.read_text()
+          s=re.sub(r'versionCode\s+\d+','versionCode 10002',s,count=1)
           s=re.sub(r'versionName\s+"[^"]+"','versionName "1.0.0"',s,count=1)
           s=s.replace('            versionNameSuffix "-debug"\n','')
-          g.write_text(s)
-          p=Path('index.html')
-          s=p.read_text()
-          s=s.replace('class="diagnostics" aria-label="Diagnóstico de notificaciones"','class="diagnostics hidden" aria-label="Diagnóstico de notificaciones"')
-          s=s.replace('Tu aporte ayuda a sostener el proyecto y sus mejoras','Tu colaboración ayuda a mantener y seguir mejorando la app')
           p.write_text(s)
           PY
-          grep -q 'class="diagnostics hidden"' index.html
           grep -q '"version": "1.0.0"' package.json
+          grep -q 'versionCode 10002' android/app/build.gradle
           grep -q 'versionName "1.0.0"' android/app/build.gradle
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - name: Android SDK
-        run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.11.1'
-      - name: Install and test
-        working-directory: /tmp/dias-laborales
-        run: |
-          npm install
-          npm test | tee /tmp/tests-final-stable.txt
-          grep -q '# fail 0' /tmp/tests-final-stable.txt
-      - name: Build web and sync
-        working-directory: /tmp/dias-laborales
-        run: |
-          npm run build
-          npx cap sync android
-      - name: Build APK and project ZIP
+      - name: Build APK and prove embedded frontend did not change
+        shell: bash
         run: |
           set -euxo pipefail
           cd /tmp/dias-laborales/android
           gradle assembleDebug --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk /tmp/DiasLaborales-1.0.0.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/DiasLaborales-1.0.0.apk > /tmp/apksigner-final-stable.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales-1.0.0.apk > /tmp/badging-final-stable.txt
-          grep -q "versionCode='10001'" /tmp/badging-final-stable.txt
-          grep -q "versionName='1.0.0'" /tmp/badging-final-stable.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/DiasLaborales-1.0.0.apk > /tmp/apksigner-byte-stable.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/DiasLaborales-1.0.0.apk > /tmp/badging-byte-stable.txt
+          grep -q "versionCode='10002'" /tmp/badging-byte-stable.txt
+          grep -q "versionName='1.0.0'" /tmp/badging-byte-stable.txt
+          rm -rf /tmp/apkassets && mkdir -p /tmp/apkassets
+          cd /tmp/apkassets
+          unzip -q /tmp/DiasLaborales-1.0.0.apk 'assets/public/*'
+          cd assets/public
+          sha256sum -c /tmp/expected-assets.sha256
           sha256sum /tmp/DiasLaborales-1.0.0.apk > /tmp/DiasLaborales-1.0.0.sha256
-          cd /tmp/dias-laborales
+
+      - name: Build clean project ZIP
+        working-directory: /tmp/dias-laborales
+        shell: bash
+        run: |
+          set -euxo pipefail
           rm -rf node_modules dist android/.gradle android/app/build android/build
           zip -qr /tmp/DiasLaborales_Proyecto_1.0.0.zip . -x 'node_modules/*' 'dist/*' '.gradle/*' 'android/.gradle/*' 'android/app/build/*' 'android/build/*'
-          unzip -t /tmp/DiasLaborales_Proyecto_1.0.0.zip > /tmp/zipcheck-final-stable.txt
+          unzip -t /tmp/DiasLaborales_Proyecto_1.0.0.zip > /tmp/zipcheck-byte-stable.txt
 
       - name: Enable KVM
         run: |
@@ -135,7 +162,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm || true
 
-      - name: Verify UI boot and notification in Android
+      - name: Verify UI boot and native notification in Android
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -150,9 +177,10 @@ jobs:
             adb shell pm grant com.lyjdesarrollos.diaslaborales android.permission.POST_NOTIFICATIONS || true
             adb shell monkey -p com.lyjdesarrollos.diaslaborales -c android.intent.category.LAUNCHER 1
             sleep 7
+            adb exec-out screencap -p > /tmp/startup-byte-stable.png
             adb shell uiautomator dump /sdcard/window.xml || true
-            adb pull /sdcard/window.xml /tmp/window-final.xml || true
-            adb exec-out screencap -p > /tmp/startup-final.png
+            adb pull /sdcard/window.xml /tmp/window-byte-stable.xml || true
+            grep -Eq 'Días Laborales|primer día|PRIMER PASO' /tmp/window-byte-stable.xml
             adb shell dumpsys activity activities | grep -q 'com.lyjdesarrollos.diaslaborales/.MainActivity'
             ! adb logcat -d | grep -q 'FATAL EXCEPTION.*com.lyjdesarrollos.diaslaborales'
             adb shell am start -n com.lyjdesarrollos.diaslaborales/.MainActivity --el native_alarm_test_ms 25000
@@ -161,24 +189,24 @@ jobs:
             adb shell am kill com.lyjdesarrollos.diaslaborales
             adb shell dumpsys deviceidle force-idle || true
             sleep 32
-            adb shell dumpsys notification --noredact > /tmp/native-notifications-final-stable.txt
-            grep -q 'Prueba nativa en segundo plano' /tmp/native-notifications-final-stable.txt
+            adb shell dumpsys notification --noredact > /tmp/native-notifications-byte-stable.txt
+            grep -q 'Prueba nativa en segundo plano' /tmp/native-notifications-byte-stable.txt
             adb shell dumpsys deviceidle unforce || true
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: DiasLaborales-1.0.0-STABLE
+          name: DiasLaborales-1.0.0-BYTE-STABLE
           path: |
             /tmp/DiasLaborales-1.0.0.apk
             /tmp/DiasLaborales_Proyecto_1.0.0.zip
             /tmp/DiasLaborales-1.0.0.sha256
-            /tmp/apksigner-final-stable.txt
-            /tmp/badging-final-stable.txt
-            /tmp/tests-final-stable.txt
-            /tmp/native-notifications-final-stable.txt
-            /tmp/startup-final.png
-            /tmp/window-final.xml
-            /tmp/zipcheck-final-stable.txt
+            /tmp/apksigner-byte-stable.txt
+            /tmp/badging-byte-stable.txt
+            /tmp/tests-byte-stable.txt
+            /tmp/native-notifications-byte-stable.txt
+            /tmp/startup-byte-stable.png
+            /tmp/window-byte-stable.xml
+            /tmp/zipcheck-byte-stable.txt
           if-no-files-found: warn
           retention-days: 7
